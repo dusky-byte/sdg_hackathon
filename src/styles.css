@@ -1,0 +1,201 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * HACK TO HUSTLE design system — minimal, editorial, near-black.
+ * One accent (coral #FF4D6D). Everything else is grayscale via white opacity.
+ * All colors in oklch. Never hardcode colors in components.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-brand: "Blanka", "Fraunces", Georgia, serif;
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: oklch(0.14 0.008 285);
+  --foreground: oklch(1 0 0);
+  --card: oklch(0.17 0.008 285);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.17 0.008 285);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(0.68 0.19 12);
+  --primary-foreground: oklch(0.14 0.008 285);
+  --secondary: oklch(0.22 0.008 285);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.22 0.008 285);
+  --muted-foreground: oklch(1 0 0 / 45%);
+  --accent: oklch(0.68 0.19 12);
+  --accent-foreground: oklch(0.14 0.008 285);
+  --destructive: oklch(0.64 0.21 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 20%);
+  --ring: oklch(0.68 0.19 12);
+  --surface: oklch(1 0 0 / 3%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Flat quiet card */
+@utility panel {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+
+/* Small-caps editorial label */
+@utility label-caps {
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: oklch(1 0 0 / 45%);
+}
+
+@utility btn-accent {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
+  &:hover {
+    transform: scale(1.02);
+    filter: brightness(1.05);
+  }
+}
+
+@utility field-underline {
+  width: 100%;
+  background-color: transparent;
+  border-bottom: 1px solid var(--input);
+  padding: 0.5rem 0;
+  font-size: 0.95rem;
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 0.2s ease;
+  &:focus {
+    border-color: var(--accent);
+  }
+}
+
+@keyframes ambient-zoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.05);
+  }
+}
+
+.ambient-zoom {
+  animation: ambient-zoom 36s ease-in-out infinite alternate;
+}
+
+@keyframes draw-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.draw-check {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: draw-check 0.9s ease-out forwards;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee-scroll 45s linear infinite;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.film-grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+body.cursor-hidden,
+body.cursor-hidden * {
+  cursor: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-zoom,
+  .marquee-track {
+    animation: none;
+  }
+}
