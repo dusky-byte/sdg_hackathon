@@ -13,8 +13,23 @@ CREATE TABLE public.registrations (
   member3_name TEXT,
   member3_email TEXT,
   member3_phone TEXT,
+  transaction_id TEXT NOT NULL,
+  payment_screenshot_url TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
+
+-- Storage bucket for payment screenshots
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('payment_screenshots', 'payment_screenshots', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Anyone can upload payment screenshots"
+ON storage.objects FOR INSERT TO public
+WITH CHECK (bucket_id = 'payment_screenshots');
+
+CREATE POLICY "Anyone can view payment screenshots"
+ON storage.objects FOR SELECT TO public
+USING (bucket_id = 'payment_screenshots');
 
 GRANT INSERT ON public.registrations TO anon;
 GRANT INSERT ON public.registrations TO authenticated;

@@ -39,7 +39,7 @@ export function Cursor() {
         className="block rounded-full"
         animate={
           hovering
-            ? { width: 40, height: 40, backgroundColor: "transparent", borderWidth: 1 }
+            ? { width: 40, height: 40, backgroundColor: "rgba(0, 0, 0, 0)", borderWidth: 1 }
             : { width: 8, height: 8, backgroundColor: "var(--accent)", borderWidth: 0 }
         }
         transition={{ type: "spring", stiffness: 300, damping: 25 }}

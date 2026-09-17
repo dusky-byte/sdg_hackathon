@@ -26,6 +26,8 @@ const schema = z.object({
   member3_name: z.string().trim().max(100).optional().or(z.literal("")),
   member3_email: z.string().trim().max(255).optional().or(z.literal("")),
   member3_phone: z.string().trim().max(20).optional().or(z.literal("")),
+  transaction_id: z.string().trim().min(1, "Required").max(200),
+  payment_screenshot: z.any().refine((val) => val instanceof File && val.size > 0, "Screenshot is required"),
 });
 
 function Field({
@@ -106,6 +108,7 @@ export function RegistrationForm({ track }: { track: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [formError, setFormError] = useState("");
+  const [showQr, setShowQr] = useState(false);
 
   useEffect(() => {
     if (track) setSelectedTrack(track);
@@ -127,6 +130,26 @@ export function RegistrationForm({ track }: { track: string }) {
     setSubmitting(true);
 
     const d = parsed.data;
+
+    // Upload payment screenshot
+    const fileExt = d.payment_screenshot.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    
+    const { error: uploadError } = await externalSupabase.storage
+      .from("payment_screenshots")
+      .upload(fileName, d.payment_screenshot);
+
+    if (uploadError) {
+      setSubmitting(false);
+      console.error("Screenshot upload error:", uploadError);
+      setFormError(`Failed to upload screenshot: ${uploadError.message}. Did you create the bucket?`);
+      return;
+    }
+
+    const { data: publicUrlData } = externalSupabase.storage
+      .from("payment_screenshots")
+      .getPublicUrl(fileName);
+
     const { error } = await externalSupabase.from("registrations").insert({
       team_name: d.team_name,
       college: d.college,
@@ -141,11 +164,14 @@ export function RegistrationForm({ track }: { track: string }) {
       member3_name: d.member3_name || null,
       member3_email: d.member3_email || null,
       member3_phone: d.member3_phone || null,
+      transaction_id: d.transaction_id,
+      payment_screenshot_url: publicUrlData.publicUrl,
     });
 
     setSubmitting(false);
     if (error) {
-      setFormError("We couldn't save your registration. Please try again.");
+      console.error("Supabase insert error:", error);
+      setFormError(`We couldn't save your registration. Error: ${error.message || "Unknown error"}. Please check the console or ensure the database table is created.`);
       return;
     }
     setDone(true);
@@ -245,6 +271,51 @@ export function RegistrationForm({ track }: { track: string }) {
                   + Add member
                 </button>
               )}
+
+              {/* Payment Section */}
+              <div className="border-t border-border pt-8">
+                <p className="font-mono text-xs text-accent">Payment Details</p>
+                <div className="mt-5 grid gap-8 sm:grid-cols-2">
+                  <div className="flex flex-col items-center sm:items-start">
+                    <p className="label-caps mb-4 w-full text-left">1. Scan & Pay</p>
+                    {!showQr ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowQr(true)}
+                        className="btn-accent px-6 py-3 text-sm self-start sm:self-auto"
+                      >
+                        Show QR Code
+                      </button>
+                    ) : (
+                      <div className="bg-foreground w-64 h-64 flex items-center justify-center p-2 text-background text-xs text-center aspect-square mx-auto sm:mx-0">
+                        [Your QR Code Here]
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-8">
+                    <Field
+                      label="2. Transaction ID"
+                      name="transaction_id"
+                      maxLength={200}
+                      error={errors["transaction_id"]}
+                    />
+                    <label className="block">
+                      <span className="label-caps">3. Payment Screenshot</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        name="payment_screenshot"
+                        className="mt-2 block w-full text-sm text-foreground/70
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-none file:border file:border-border
+                          file:text-sm file:font-mono file:bg-transparent file:text-foreground
+                          hover:file:bg-foreground hover:file:text-background transition-colors cursor-pointer"
+                      />
+                      {errors["payment_screenshot"] && <span className="mt-1 block text-xs text-destructive">{errors["payment_screenshot"]}</span>}
+                    </label>
+                  </div>
+                </div>
+              </div>
 
               {formError && <p className="text-sm text-destructive">{formError}</p>}
 
