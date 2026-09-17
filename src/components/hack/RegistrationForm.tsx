@@ -3,18 +3,16 @@ import { z } from "zod";
 import { externalSupabase } from "@/lib/external-supabase";
 import { TRACKS } from "./data";
 
-const nameRule = z.string().trim().min(1, "Required").max(100);
+const nameRule = z.string().trim().min(1, "Required").max(100).regex(/^[A-Za-z\s]+$/, "Only alphabetic characters allowed");
 const emailRule = z.string().trim().email("Invalid email address").max(255);
 const phoneRule = z
   .string()
   .trim()
-  .min(7, "Too short")
-  .max(20)
-  .regex(/^[0-9+\-\s()]+$/, "Invalid phone number");
+  .regex(/^\d{10}$/, "Phone number must be exactly 10 digits");
 
 const schema = z.object({
-  team_name: z.string().trim().min(1, "Required").max(100),
-  college: z.string().trim().min(1, "Required").max(150),
+  team_name: z.string().trim().min(1, "Required").max(100).regex(/^[A-Za-z\s]+$/, "Only alphabetic characters allowed"),
+  college: z.string().trim().min(1, "Required").max(150).regex(/^[A-Za-z\s]+$/, "Only alphabetic characters allowed"),
   track: z.string().trim().min(1, "Required").max(100),
   team_size: z.coerce.number().int().min(2, "Minimum 2").max(3, "Maximum 3"),
   member1_name: nameRule,
@@ -23,9 +21,9 @@ const schema = z.object({
   member2_name: nameRule,
   member2_email: emailRule,
   member2_phone: phoneRule,
-  member3_name: z.string().trim().max(100).optional().or(z.literal("")),
+  member3_name: z.string().trim().max(100).regex(/^[A-Za-z\s]*$/, "Only alphabetic characters allowed").optional().or(z.literal("")),
   member3_email: z.string().trim().max(255).optional().or(z.literal("")),
-  member3_phone: z.string().trim().max(20).optional().or(z.literal("")),
+  member3_phone: z.string().trim().regex(/^\d{10}$/, "Phone number must be exactly 10 digits").optional().or(z.literal("")),
   transaction_id: z.string().trim().min(1, "Required").max(200),
   payment_screenshot: z.any().refine((val) => val instanceof File && val.size > 0, "Screenshot is required"),
 });
@@ -44,6 +42,140 @@ function Field({
     <label className="block">
       <span className="label-caps">{label}</span>
       <input id={name} name={name} className="field-underline mt-2" {...rest} />
+      {error && <span className="mt-1 block text-xs text-destructive">{error}</span>}
+    </label>
+  );
+}
+
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  name,
+  placeholder = "Select an option",
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  name: string;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative mt-2">
+      <input type="hidden" name={name} value={value} />
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="field-underline flex w-full items-center justify-between text-left py-2"
+      >
+        <span className={value ? "" : "text-foreground/45"}>{value || placeholder}</span>
+        <svg
+          className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <ul className="absolute z-10 top-full mt-1 max-h-60 w-full overflow-auto border border-border bg-background shadow-lg">
+          {options.map((opt) => (
+            <li
+              key={opt}
+              onClick={() => {
+                onChange(opt);
+                setOpen(false);
+              }}
+              className="cursor-pointer px-4 py-3 text-sm transition-colors hover:bg-foreground hover:text-background"
+            >
+              {opt}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function CustomNumberInput({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  error,
+  name,
+}: {
+  label: string;
+  value: number | "";
+  onChange: (val: number | "") => void;
+  min: number;
+  max: number;
+  error?: string;
+  name: string;
+}) {
+  const handleIncrement = () => {
+    let curr = typeof value === "number" ? value : min - 1;
+    if (curr < max) onChange(curr + 1);
+  };
+
+  const handleDecrement = () => {
+    let curr = typeof value === "number" ? value : min;
+    if (curr > min) onChange(curr - 1);
+  };
+
+  return (
+    <label className="block">
+      <span className="label-caps">{label}</span>
+      <div className="relative mt-2 flex items-center">
+        <input
+          id={name}
+          name={name}
+          type="number"
+          className="field-underline w-full pr-10"
+          value={value}
+          min={min}
+          max={max}
+          onChange={(e) => {
+            if (e.target.value === "") {
+              onChange("");
+              return;
+            }
+            let val = parseInt(e.target.value, 10);
+            if (!isNaN(val)) {
+              if (val > max) val = max;
+              onChange(val);
+            }
+          }}
+        />
+        <div className="absolute right-0 bottom-0 flex h-full flex-col justify-end space-y-1 pb-1 px-2">
+          <button
+            type="button"
+            onClick={handleIncrement}
+            className="text-foreground/45 transition-colors hover:text-accent disabled:opacity-30 disabled:hover:text-foreground/45"
+            disabled={value !== "" && value >= max}
+          >
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={handleDecrement}
+            className="text-foreground/45 transition-colors hover:text-accent disabled:opacity-30 disabled:hover:text-foreground/45"
+            disabled={value !== "" && value <= min}
+          >
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" transform="rotate(180 12 12)" />
+            </svg>
+          </button>
+        </div>
+      </div>
       {error && <span className="mt-1 block text-xs text-destructive">{error}</span>}
     </label>
   );
@@ -102,8 +234,8 @@ function SuccessCheck() {
 }
 
 export function RegistrationForm({ track }: { track: string }) {
-  const [selectedTrack, setSelectedTrack] = useState<string>(track || TRACKS[0].label);
-  const [showMember3, setShowMember3] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<string>(track || "");
+  const [teamSize, setTeamSize] = useState<number | "">(2);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -193,48 +325,47 @@ export function RegistrationForm({ track }: { track: string }) {
                   name="team_name"
                   maxLength={100}
                   error={errors["team_name"]}
+                  onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "") }}
                 />
                 <Field
                   label="College / institution"
                   name="college"
                   maxLength={150}
                   error={errors["college"]}
+                  onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "") }}
                 />
                 <label className="block">
                   <span className="label-caps">Track</span>
-                  <select
+                  <CustomSelect
                     name="track"
                     value={selectedTrack}
-                    onChange={(e) => setSelectedTrack(e.target.value)}
-                    className="field-underline mt-2"
-                  >
-                    {TRACKS.map((t) => (
-                      <option key={t.label} value={t.label} className="bg-card">
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedTrack(val)}
+                    options={TRACKS.map((t) => t.label)}
+                    placeholder="Select a track"
+                  />
+                  {errors["track"] && <span className="mt-1 block text-xs text-destructive">{errors["track"]}</span>}
                 </label>
-                <Field
+                <CustomNumberInput
                   label="Team size (2–3)"
                   name="team_size"
-                  type="number"
                   min={2}
                   max={3}
-                  defaultValue={2}
+                  value={teamSize}
+                  onChange={(val) => setTeamSize(val)}
                   error={errors["team_size"]}
                 />
               </div>
 
-              {[1, 2].map((n) => (
+              {Array.from({ length: typeof teamSize === 'number' ? Math.min(Math.max(teamSize, 2), 3) : 2 }, (_, i) => i + 1).map((n) => (
                 <div key={n} className="border-t border-border pt-8">
-                  <p className="font-mono text-xs text-accent">Member {n}</p>
+                  <p className="font-mono text-xs text-accent">Member {n}{n === 3 ? " — optional" : ""}</p>
                   <div className="mt-5 grid gap-8 sm:grid-cols-3">
                     <Field
                       label="Name"
                       name={`member${n}_name`}
                       maxLength={100}
                       error={errors[`member${n}_name`]}
+                      onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "") }}
                     />
                     <Field
                       label="Email"
@@ -246,31 +377,13 @@ export function RegistrationForm({ track }: { track: string }) {
                     <Field
                       label="Phone"
                       name={`member${n}_phone`}
-                      maxLength={20}
+                      maxLength={10}
                       error={errors[`member${n}_phone`]}
+                      onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "") }}
                     />
                   </div>
                 </div>
               ))}
-
-              {showMember3 ? (
-                <div className="border-t border-border pt-8">
-                  <p className="font-mono text-xs text-accent">Member 3 — optional</p>
-                  <div className="mt-5 grid gap-8 sm:grid-cols-3">
-                    <Field label="Name" name="member3_name" maxLength={100} />
-                    <Field label="Email" name="member3_email" type="email" maxLength={255} />
-                    <Field label="Phone" name="member3_phone" maxLength={20} />
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowMember3(true)}
-                  className="text-sm text-foreground/45 transition-colors hover:text-foreground/90"
-                >
-                  + Add member
-                </button>
-              )}
 
               {/* Payment Section */}
               <div className="border-t border-border pt-8">
