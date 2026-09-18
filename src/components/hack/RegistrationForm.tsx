@@ -420,6 +420,19 @@ export function RegistrationForm({ track }: { track: string }) {
                         type="file"
                         accept="image/*"
                         name="payment_screenshot"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && !file.type.startsWith("image/")) {
+                            setErrors((prev) => ({ ...prev, payment_screenshot: "Invalid file format. Please upload an image (png, jpg, etc)." }));
+                            e.target.value = "";
+                          } else {
+                            setErrors((prev) => {
+                              const next = { ...prev };
+                              delete next["payment_screenshot"];
+                              return next;
+                            });
+                          }
+                        }}
                         className="mt-2 block w-full text-sm text-foreground/70
                           file:mr-4 file:py-2 file:px-4
                           file:rounded-none file:border file:border-border
