@@ -42,7 +42,7 @@ function DashboardAuthGuard() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD || "admin123";
+    const correctPassword = import.meta.env["VITE_ADMIN_PASSWORD"] || "admin123";
     if (password === correctPassword) {
       setIsAuthenticated(true);
       setError("");

@@ -28,9 +28,11 @@ export type Database = {
           member3_email: string | null
           member3_name: string | null
           member3_phone: string | null
+          payment_screenshot_url: string | null
           team_name: string
           team_size: number
           track: string
+          transaction_id: string | null
         }
         Insert: {
           college: string
@@ -45,9 +47,11 @@ export type Database = {
           member3_email?: string | null
           member3_name?: string | null
           member3_phone?: string | null
+          payment_screenshot_url?: string | null
           team_name: string
           team_size?: number
           track: string
+          transaction_id?: string | null
         }
         Update: {
           college?: string
@@ -62,9 +66,11 @@ export type Database = {
           member3_email?: string | null
           member3_name?: string | null
           member3_phone?: string | null
+          payment_screenshot_url?: string | null
           team_name?: string
           team_size?: number
           track?: string
+          transaction_id?: string | null
         }
         Relationships: []
       }

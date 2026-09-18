@@ -118,7 +118,7 @@ function CustomNumberInput({
   onChange: (val: number | "") => void;
   min: number;
   max: number;
-  error?: string;
+  error?: string | undefined;
   name: string;
 }) {
   const handleIncrement = () => {
