@@ -56,7 +56,7 @@ export const TOOLS =
   "Canva, Figma, HTML/CSS/JS, Python, Scratch, MIT App Inventor, no-code tools, or generative AI.";
 
 export const COORDINATORS = [
-  { name: "Harshith Jain", role: "Student Coordinator", phone: "7094589284" },
+  { name: "Pranesh", role: "Student Coordinator", phone: "9843963338" },
   { name: "Smilin Jency", role: "Student Coordinator", phone: "9123537640" },
 ] as const;
 

@@ -85,8 +85,8 @@ export function SiteFooter() {
         Applications, in collaboration with REACH.
       </p>
       <p className="mt-3">
-        Harshith Jain —{" "}
-        <a className="hover:text-foreground/80" href="tel:7094589284">
+        Pranesh —{" "}
+        <a className="hover:text-foreground/80" href="tel:9843963338">
           7094589284
         </a>
         <span className="px-3">|</span>
