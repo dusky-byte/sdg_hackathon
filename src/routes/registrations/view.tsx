@@ -279,6 +279,9 @@ function RegistrationRow({ reg }: { reg: any }) {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
       setIsEditing(false);
     },
+    onError: (error) => {
+      alert("Failed to update: " + error.message);
+    }
   });
 
   const deleteMutation = useMutation({
@@ -290,6 +293,9 @@ function RegistrationRow({ reg }: { reg: any }) {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
       setIsOpen(false);
     },
+    onError: (error) => {
+      alert("Failed to delete: " + error.message);
+    }
   });
 
   return (
