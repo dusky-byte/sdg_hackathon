@@ -1,0 +1,356 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Lock, Users, Activity, ExternalLink, Hash } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell } from "recharts";
+
+export const Route = createFileRoute("/registrations/view")({
+  component: DashboardAuthGuard,
+});
+
+function DashboardAuthGuard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const correctPassword = import.meta.env.VITE_ADMIN_PASSWORD || "admin123";
+    if (password === correctPassword) {
+      setIsAuthenticated(true);
+      setError("");
+    } else {
+      setError("Incorrect password");
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="film-grain min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-background/95 backdrop-blur-md border-primary/20">
+          <CardHeader className="text-center">
+            <div className="mx-auto bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+              <Lock className="w-6 h-6 text-primary" />
+            </div>
+            <CardTitle className="text-2xl font-bold tracking-tight">Admin Access</CardTitle>
+            <CardDescription>Enter the dashboard password to view registrations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-muted/50"
+                  autoFocus
+                />
+                {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+              </div>
+              <Button type="submit" className="w-full">
+                Unlock Dashboard
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return <RegistrationsDashboard />;
+}
+
+function RegistrationsDashboard() {
+  const { data: registrations, isLoading } = useQuery({
+    queryKey: ["registrations"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("registrations")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const [expanded, setExpanded] = useState(false);
+
+  // Compute charts data
+  const chartsData = useMemo(() => {
+    if (!registrations) return { byTrack: [], bySize: [] };
+
+    const trackCounts: Record<string, number> = {};
+    const sizeCounts: Record<number, number> = {};
+
+    registrations.forEach((reg) => {
+      const t = reg.track || "Unspecified";
+      trackCounts[t] = (trackCounts[t] || 0) + 1;
+
+      const s = reg.team_size || 2;
+      sizeCounts[s] = (sizeCounts[s] || 0) + 1;
+    });
+
+    const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+
+    const byTrack = Object.entries(trackCounts).map(([name, value], idx) => ({
+      name,
+      value,
+      fill: COLORS[idx % COLORS.length],
+    }));
+
+    const bySize = Object.entries(sizeCounts).map(([size, count]) => ({
+      size: `${size} Members`,
+      count,
+    }));
+
+    return { byTrack, bySize };
+  }, [registrations]);
+
+  if (isLoading) {
+    return (
+      <div className="film-grain min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground font-medium animate-pulse">Loading registrations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const visibleRegistrations = expanded ? registrations : registrations?.slice(0, 5);
+
+  const trackChartConfig = {
+    value: { label: "Teams" },
+  };
+
+  const sizeChartConfig = {
+    count: { label: "Teams", color: "hsl(var(--primary))" },
+  };
+
+  return (
+    <div className="film-grain min-h-screen p-4 sm:p-8">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground">Hack to Hustle Registration Overview</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <Card className="px-4 py-2 flex items-center gap-3 bg-background/50 backdrop-blur-sm border-primary/20">
+              <div className="bg-primary/20 p-2 rounded-md">
+                <Users className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-semibold">Total Teams</p>
+                <p className="text-xl font-bold leading-none">{registrations?.length || 0}</p>
+              </div>
+            </Card>
+          </div>
+        </header>
+
+        <div className="grid lg:grid-cols-2 gap-6">
+          <Card className="bg-background/80 backdrop-blur-md border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Activity className="w-4 h-4 text-primary" />
+                Registrations by Track
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={trackChartConfig} className="h-[250px] w-full">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                  <Pie
+                    data={chartsData.byTrack}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={2}
+                  >
+                    {chartsData.byTrack.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartLegend content={<ChartLegendContent />} />
+                </PieChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-background/80 backdrop-blur-md border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Hash className="w-4 h-4 text-primary" />
+                Team Size Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={sizeChartConfig} className="h-[250px] w-full">
+                <BarChart data={chartsData.bySize} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="size" tickLine={false} axisLine={false} tickMargin={10} />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={10} />
+                  <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: 'var(--color-muted)' }} />
+                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="bg-background/90 backdrop-blur-md border-border/50 overflow-hidden">
+          <CardHeader>
+            <CardTitle>Recent Registrations</CardTitle>
+            <CardDescription>Click a row to view complete team details.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead>Team Name</TableHead>
+                  <TableHead>Track</TableHead>
+                  <TableHead>College</TableHead>
+                  <TableHead className="text-right">Size</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleRegistrations?.map((reg) => (
+                  <Dialog key={reg.id}>
+                    <DialogTrigger asChild>
+                      <TableRow className="cursor-pointer hover:bg-muted/50 transition-colors">
+                        <TableCell className="font-medium">{reg.team_name}</TableCell>
+                        <TableCell>{reg.track}</TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={reg.college}>
+                          {reg.college}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                            {reg.team_size}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-primary/20">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl flex items-center gap-2">
+                          {reg.team_name}
+                          <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full font-medium ml-2 uppercase tracking-wide">
+                            {reg.track}
+                          </span>
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="grid gap-6 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground font-medium mb-1">College / Institution</p>
+                            <p className="text-sm">{reg.college}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground font-medium mb-1">Registration Date</p>
+                            <p className="text-sm">
+                              {new Date(reg.created_at).toLocaleString(undefined, {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h3 className="font-semibold text-lg border-b pb-2">Team Members</h3>
+                          
+                          {/* Member 1 */}
+                          <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="bg-primary text-primary-foreground text-xs font-bold px-1.5 py-0.5 rounded">Leader</span>
+                              <p className="font-semibold">{reg.member1_name}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                              <p>📧 {reg.member1_email}</p>
+                              <p>📱 {reg.member1_phone}</p>
+                            </div>
+                          </div>
+
+                          {/* Member 2 */}
+                          <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
+                            <p className="font-semibold mb-2">{reg.member2_name}</p>
+                            <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                              <p>📧 {reg.member2_email}</p>
+                              <p>📱 {reg.member2_phone}</p>
+                            </div>
+                          </div>
+
+                          {/* Member 3 */}
+                          {reg.member3_name && (
+                            <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
+                              <p className="font-semibold mb-2">{reg.member3_name}</p>
+                              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                                <p>📧 {reg.member3_email}</p>
+                                <p>📱 {reg.member3_phone}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                ))}
+                {(!visibleRegistrations || visibleRegistrations.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                      No registrations found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+            {registrations && registrations.length > 5 && (
+              <div className="p-4 border-t flex justify-center bg-muted/20">
+                <Button
+                  variant="outline"
+                  onClick={() => setExpanded(!expanded)}
+                  className="w-full sm:w-auto flex items-center gap-2"
+                >
+                  {expanded ? "Show Less" : `View All ${registrations.length} Registrations`}
+                  {!expanded && <ExternalLink className="w-4 h-4" />}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
