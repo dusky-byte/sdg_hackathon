@@ -87,7 +87,7 @@ export function SiteFooter() {
       <p className="mt-3">
         Pranesh —{" "}
         <a className="hover:text-foreground/80" href="tel:9843963338">
-          7094589284
+          9843963338
         </a>
         <span className="px-3">|</span>
         Smilin Jency —{" "}
