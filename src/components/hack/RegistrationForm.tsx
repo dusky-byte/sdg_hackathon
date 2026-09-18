@@ -25,7 +25,9 @@ const schema = z.object({
   member3_email: z.string().trim().max(255).optional().or(z.literal("")),
   member3_phone: z.string().trim().regex(/^\d{10}$/, "Phone number must be exactly 10 digits").optional().or(z.literal("")),
   transaction_id: z.string().trim().min(1, "Required").max(200),
-  payment_screenshot: z.any().refine((val) => val instanceof File && val.size > 0, "Screenshot is required"),
+  payment_screenshot: z.any()
+    .refine((val) => val instanceof File && val.size > 0, "Screenshot is required")
+    .refine((val) => val instanceof File && val.type.startsWith("image/"), "File must be an image (png, jpg, jpeg, etc)"),
 });
 
 function Field({
