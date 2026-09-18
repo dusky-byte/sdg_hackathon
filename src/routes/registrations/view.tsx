@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Lock, Users, Activity, ExternalLink, Hash } from "lucide-react";
+import { Lock, Users, Activity, ExternalLink, Hash, Edit2, Trash2, Check, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -247,85 +247,7 @@ function RegistrationsDashboard() {
               </TableHeader>
               <TableBody>
                 {visibleRegistrations?.map((reg) => (
-                  <Dialog key={reg.id}>
-                    <DialogTrigger asChild>
-                      <TableRow className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <TableCell className="font-medium">{reg.team_name}</TableCell>
-                        <TableCell>{reg.track}</TableCell>
-                        <TableCell className="max-w-[200px] truncate" title={reg.college}>
-                          {reg.college}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
-                            {reg.team_size}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-primary/20">
-                      <DialogHeader>
-                        <DialogTitle className="text-2xl flex items-center gap-2">
-                          {reg.team_name}
-                          <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full font-medium ml-2 uppercase tracking-wide">
-                            {reg.track}
-                          </span>
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-6 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground font-medium mb-1">College / Institution</p>
-                            <p className="text-sm">{reg.college}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground font-medium mb-1">Registration Date</p>
-                            <p className="text-sm">
-                              {new Date(reg.created_at).toLocaleString(undefined, {
-                                dateStyle: "medium",
-                                timeStyle: "short",
-                              })}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <h3 className="font-semibold text-lg border-b pb-2">Team Members</h3>
-                          
-                          {/* Member 1 */}
-                          <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="bg-primary text-primary-foreground text-xs font-bold px-1.5 py-0.5 rounded">Leader</span>
-                              <p className="font-semibold">{reg.member1_name}</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                              <p>📧 {reg.member1_email}</p>
-                              <p>📱 {reg.member1_phone}</p>
-                            </div>
-                          </div>
-
-                          {/* Member 2 */}
-                          <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
-                            <p className="font-semibold mb-2">{reg.member2_name}</p>
-                            <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                              <p>📧 {reg.member2_email}</p>
-                              <p>📱 {reg.member2_phone}</p>
-                            </div>
-                          </div>
-
-                          {/* Member 3 */}
-                          {reg.member3_name && (
-                            <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
-                              <p className="font-semibold mb-2">{reg.member3_name}</p>
-                              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                                <p>📧 {reg.member3_email}</p>
-                                <p>📱 {reg.member3_phone}</p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <RegistrationRow key={reg.id} reg={reg} />
                 ))}
                 {(!visibleRegistrations || visibleRegistrations.length === 0) && (
                   <TableRow>
@@ -354,3 +276,152 @@ function RegistrationsDashboard() {
     </div>
   );
 }
+
+function RegistrationRow({ reg }: { reg: any }) {
+  const queryClient = useQueryClient();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(reg.team_name);
+
+  const updateMutation = useMutation({
+    mutationFn: async (newName: string) => {
+      const { error } = await supabase.from("registrations").update({ team_name: newName }).eq("id", reg.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["registrations"] });
+      setIsEditing(false);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("registrations").delete().eq("id", reg.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["registrations"] });
+      setIsOpen(false);
+    },
+  });
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <TableRow className="cursor-pointer hover:bg-muted/50 transition-colors">
+          <TableCell className="font-medium">{reg.team_name}</TableCell>
+          <TableCell>{reg.track}</TableCell>
+          <TableCell className="max-w-[200px] truncate" title={reg.college}>
+            {reg.college}
+          </TableCell>
+          <TableCell className="text-right">
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
+              {reg.team_size}
+            </span>
+          </TableCell>
+        </TableRow>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-primary/20">
+        <DialogHeader>
+          <DialogTitle className="text-2xl flex items-start justify-between gap-2 pr-6">
+            <div className="flex-1 flex flex-wrap items-center gap-2">
+              {isEditing ? (
+                <div className="flex items-center gap-2 w-full max-w-sm">
+                  <Input 
+                    value={editName} 
+                    onChange={(e) => setEditName(e.target.value)} 
+                    className="h-8"
+                  />
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500" onClick={() => updateMutation.mutate(editName)} disabled={updateMutation.isPending}>
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => { setIsEditing(false); setEditName(reg.team_name); }}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <span>{reg.team_name}</span>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 ml-1" onClick={() => setIsEditing(true)}>
+                    <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Button>
+                </>
+              )}
+              <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full font-medium uppercase tracking-wide">
+                {reg.track}
+              </span>
+            </div>
+            
+            <Button 
+              variant="destructive" 
+              size="icon" 
+              className="h-8 w-8 shrink-0" 
+              onClick={() => {
+                if(confirm(`Are you sure you want to delete ${reg.team_name}?`)) {
+                  deleteMutation.mutate();
+                }
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-6 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground font-medium mb-1">College / Institution</p>
+              <p className="text-sm">{reg.college}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground font-medium mb-1">Registration Date</p>
+              <p className="text-sm">
+                {new Date(reg.created_at).toLocaleString(undefined, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg border-b pb-2">Team Members</h3>
+            
+            {/* Member 1 */}
+            <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="bg-primary text-primary-foreground text-xs font-bold px-1.5 py-0.5 rounded">Leader</span>
+                <p className="font-semibold">{reg.member1_name}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                <p>📧 {reg.member1_email}</p>
+                <p>📱 {reg.member1_phone}</p>
+              </div>
+            </div>
+
+            {/* Member 2 */}
+            <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
+              <p className="font-semibold mb-2">{reg.member2_name}</p>
+              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                <p>📧 {reg.member2_email}</p>
+                <p>📱 {reg.member2_phone}</p>
+              </div>
+            </div>
+
+            {/* Member 3 */}
+            {reg.member3_name && (
+              <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
+                <p className="font-semibold mb-2">{reg.member3_name}</p>
+                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                  <p>📧 {reg.member3_email}</p>
+                  <p>📱 {reg.member3_phone}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
