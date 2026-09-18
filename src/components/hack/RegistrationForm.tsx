@@ -225,19 +225,57 @@ function SuccessCheck() {
 }
 
 export function RegistrationForm() {
-  const [teamSize, setTeamSize] = useState<number | "">(2);
+  // Load draft from localStorage on initial render
+  const [draft] = useState<Record<string, any>>(() => {
+    try {
+      const saved = typeof window !== "undefined" ? localStorage.getItem("registration_draft") : null;
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [teamSize, setTeamSize] = useState<number | "">(draft["team_size"] ? parseInt(draft["team_size"]) : 2);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [formError, setFormError] = useState("");
   const [showQr, setShowQr] = useState(false);
 
-  // Email verification state
   const [member1Email, setMember1Email] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState("");
   const [verifying, setVerifying] = useState(false);
+
+  useEffect(() => {
+    // Check if they are already verified (e.g., they clicked the link and were redirected here)
+    externalSupabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        setMember1Email(session.user.email);
+        setEmailVerified(true);
+      }
+    });
+
+    // Listen for auth changes. If they click the link in another tab, this tab will magically update!
+    const {
+      data: { subscription },
+    } = externalSupabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.email) {
+        setMember1Email(session.user.email);
+        setEmailVerified(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleFormChange = (e: React.FormEvent<HTMLFormElement>) => {
+    const formData = new FormData(e.currentTarget);
+    // Don't save the file object to localStorage
+    formData.delete("payment_screenshot");
+    const data = Object.fromEntries(formData.entries());
+    localStorage.setItem("registration_draft", JSON.stringify(data));
+  };
 
   async function handleSendOtp() {
     if (!member1Email) return;
@@ -245,29 +283,15 @@ export function RegistrationForm() {
     setFormError("");
     const { error } = await externalSupabase.auth.signInWithOtp({
       email: member1Email,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
     });
     setVerifying(false);
     if (error) {
-      setFormError(`Failed to send OTP: ${error.message}`);
+      setFormError(`Failed to send link: ${error.message}`);
     } else {
       setOtpSent(true);
-    }
-  }
-
-  async function handleVerifyOtp() {
-    if (!otp || !member1Email) return;
-    setVerifying(true);
-    setFormError("");
-    const { error } = await externalSupabase.auth.verifyOtp({
-      email: member1Email,
-      token: otp,
-      type: "email",
-    });
-    setVerifying(false);
-    if (error) {
-      setFormError(`Invalid OTP: ${error.message}`);
-    } else {
-      setEmailVerified(true);
     }
   }
 
@@ -337,6 +361,8 @@ export function RegistrationForm() {
       setFormError(`We couldn't save your registration. Error: ${error.message || "Unknown error"}. Please check the console or ensure the database table is created.`);
       return;
     }
+    // Clear draft on successful submission
+    localStorage.removeItem("registration_draft");
     setDone(true);
   }
 
@@ -349,11 +375,12 @@ export function RegistrationForm() {
           {done ? (
             <SuccessCheck />
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-8" noValidate>
+            <form onSubmit={handleSubmit} onChange={handleFormChange} className="space-y-8" noValidate>
               <div className="grid gap-8 sm:grid-cols-2">
                 <Field
                   label="Team name"
                   name="team_name"
+                  defaultValue={draft["team_name"]}
                   maxLength={100}
                   error={errors["team_name"]}
                   onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "") }}
@@ -361,6 +388,7 @@ export function RegistrationForm() {
                 <Field
                   label="College / institution"
                   name="college"
+                  defaultValue={draft["college"]}
                   maxLength={150}
                   error={errors["college"]}
                   onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "") }}
@@ -383,6 +411,7 @@ export function RegistrationForm() {
                     <Field
                       label="Name"
                       name={`member${n}_name`}
+                      defaultValue={draft[`member${n}_name`]}
                       maxLength={100}
                       error={errors[`member${n}_name`]}
                       onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "") }}
@@ -394,7 +423,7 @@ export function RegistrationForm() {
                           name="member1_email"
                           type="email"
                           maxLength={255}
-                          value={member1Email}
+                          value={member1Email || draft["member1_email"] || ""}
                           onChange={(e) => setMember1Email(e.target.value)}
                           error={errors["member1_email"]}
                           readOnly={emailVerified || otpSent}
@@ -402,23 +431,9 @@ export function RegistrationForm() {
                         {!emailVerified && (
                           <div className="mt-2 flex flex-col gap-2">
                             {otpSent ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  placeholder="6-digit OTP"
-                                  className="field-underline w-full text-sm"
-                                  value={otp}
-                                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                                  maxLength={6}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={handleVerifyOtp}
-                                  disabled={verifying || otp.length !== 6}
-                                  className="btn-accent px-3 py-1 text-xs shrink-0 disabled:opacity-50"
-                                >
-                                  {verifying ? "..." : "Confirm"}
-                                </button>
+                              <div className="p-3 bg-accent/10 border border-accent rounded-md text-sm">
+                                <p className="font-semibold text-accent mb-1">Check your inbox!</p>
+                                <p>We sent a magic link to your email. <strong>Keep this tab open</strong> and click the link in your email. This page will automatically verify once you click it!</p>
                               </div>
                             ) : (
                               <button
@@ -440,6 +455,7 @@ export function RegistrationForm() {
                       <Field
                         label="Email"
                         name={`member${n}_email`}
+                        defaultValue={draft[`member${n}_email`]}
                         type="email"
                         maxLength={255}
                         error={errors[`member${n}_email`]}
@@ -448,6 +464,7 @@ export function RegistrationForm() {
                     <Field
                       label="Phone"
                       name={`member${n}_phone`}
+                      defaultValue={draft[`member${n}_phone`]}
                       maxLength={10}
                       error={errors[`member${n}_phone`]}
                       onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "") }}
@@ -480,6 +497,7 @@ export function RegistrationForm() {
                     <Field
                       label="2. Transaction ID"
                       name="transaction_id"
+                      defaultValue={draft["transaction_id"]}
                       maxLength={200}
                       error={errors["transaction_id"]}
                     />
