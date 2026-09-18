@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { externalSupabase } from "@/lib/external-supabase";
+import { supabase as externalSupabase } from "@/integrations/supabase/client";
 
 const nameRule = z.string().trim().min(1, "Required").max(100).regex(/^[A-Za-z\s]+$/, "Only alphabetic characters allowed");
 const emailRule = z.string().trim().email("Invalid email address").max(255);
@@ -186,8 +186,10 @@ function RulebookDownload() {
     <div className="shrink-0 flex flex-col items-start">
       <p className="label-caps mb-4">Preparation</p>
       <a 
-        href="/files/rulebook.pdf" 
-        download="rulebook.pdf"
+        href="/files/Hack2Hustle_Rule_Book.pdf" 
+        download="Hack2Hustle_Rule_Book.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
         className="btn-accent px-6 py-3 text-sm text-center inline-flex items-center gap-2"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
