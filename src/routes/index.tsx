@@ -11,7 +11,6 @@ import { RegistrationForm } from "@/components/hack/RegistrationForm";
 import { Reveal } from "@/components/hack/Reveal";
 import {
   AboutSection,
-  JudgingSection,
   ScheduleSection,
   SiteFooter,
 } from "@/components/hack/Sections";
@@ -62,7 +61,6 @@ function Index() {
           <RegistrationForm />
           <AboutSection />
           <ScheduleSection />
-          <JudgingSection />
         </div>
 
         <SiteFooter />

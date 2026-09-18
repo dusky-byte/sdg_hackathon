@@ -1,4 +1,4 @@
-import { AWARDS, SCHEDULE, STEPS, TOOLS } from "./data";
+import { SCHEDULE, STEPS, TOOLS } from "./data";
 import { Reveal } from "./Reveal";
 
 export function AboutSection() {
@@ -59,23 +59,7 @@ export function ScheduleSection() {
   );
 }
 
-export function JudgingSection() {
-  return (
-    <section className="border-t border-border pt-16">
-      <Reveal>
-        <h2 className="label-caps">What you could win</h2>
-        <ul className="mt-6 space-y-3">
-          {AWARDS.map((award) => (
-            <li key={award} className="flex items-center gap-3 text-foreground/90">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
-              {award}
-            </li>
-          ))}
-        </ul>
-      </Reveal>
-    </section>
-  );
-}
+
 
 export function SiteFooter() {
   return (

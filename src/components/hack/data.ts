@@ -34,16 +34,6 @@ export const CRITERIA = [
   ["Overall Impression", 5],
 ] as const;
 
-export const AWARDS = [
-  "SDG 4 Champion",
-  "Most Innovative Idea",
-  "Best AI Solution",
-  "Best Inclusive Education Solution",
-  "Best Social Impact Solution",
-  "Best UI/UX",
-  "Best Prototype",
-] as const;
-
 export const STEPS = [
   ["01", "Identify"],
   ["02", "Ideate"],

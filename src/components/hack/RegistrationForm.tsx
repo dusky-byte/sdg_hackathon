@@ -181,21 +181,14 @@ function CustomNumberInput({
   );
 }
 
-function RulebookDownload({ driveLink }: { driveLink?: string }) {
+function RulebookDownload() {
   return (
     <div className="shrink-0 flex flex-col items-start">
       <p className="label-caps mb-4">Preparation</p>
       <a 
-        href={driveLink || "#"} 
-        target="_blank" 
-        rel="noopener noreferrer"
+        href="/files/rulebook.pdf" 
+        download="rulebook.pdf"
         className="btn-accent px-6 py-3 text-sm text-center inline-flex items-center gap-2"
-        onClick={(e) => {
-          if (!driveLink || driveLink === "#") {
-            e.preventDefault();
-            alert("Rulebook link will be updated soon!");
-          }
-        }}
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -381,7 +374,7 @@ export function RegistrationForm() {
                       </button>
                     ) : (
                       <div className="w-64 h-64 flex items-center justify-center mx-auto sm:mx-0 overflow-hidden rounded-lg border border-border bg-foreground/5 p-2">
-                        <img src="/payment/payment_qr.jpg" alt="Payment QR Code" className="w-full h-full object-contain mix-blend-multiply" />
+                        <img src="/payment/payment_qr.jpg" alt="Payment QR Code" className="w-full h-full object-contain rounded-md" />
                       </div>
                     )}
                   </div>
