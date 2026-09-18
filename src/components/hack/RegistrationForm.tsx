@@ -232,9 +232,54 @@ export function RegistrationForm() {
   const [formError, setFormError] = useState("");
   const [showQr, setShowQr] = useState(false);
 
+  // Email verification state
+  const [member1Email, setMember1Email] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [verifying, setVerifying] = useState(false);
+
+  async function handleSendOtp() {
+    if (!member1Email) return;
+    setVerifying(true);
+    setFormError("");
+    const { error } = await externalSupabase.auth.signInWithOtp({
+      email: member1Email,
+    });
+    setVerifying(false);
+    if (error) {
+      setFormError(`Failed to send OTP: ${error.message}`);
+    } else {
+      setOtpSent(true);
+    }
+  }
+
+  async function handleVerifyOtp() {
+    if (!otp || !member1Email) return;
+    setVerifying(true);
+    setFormError("");
+    const { error } = await externalSupabase.auth.verifyOtp({
+      email: member1Email,
+      token: otp,
+      type: "email",
+    });
+    setVerifying(false);
+    if (error) {
+      setFormError(`Invalid OTP: ${error.message}`);
+    } else {
+      setEmailVerified(true);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setFormError("");
+    
+    if (!emailVerified) {
+      setFormError("Please verify the Team Leader's email (Member 1) before submitting.");
+      return;
+    }
+
     const raw = Object.fromEntries(new FormData(e.currentTarget).entries());
     const parsed = schema.safeParse(raw);
 
@@ -342,13 +387,64 @@ export function RegistrationForm() {
                       error={errors[`member${n}_name`]}
                       onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "") }}
                     />
-                    <Field
-                      label="Email"
-                      name={`member${n}_email`}
-                      type="email"
-                      maxLength={255}
-                      error={errors[`member${n}_email`]}
-                    />
+                    {n === 1 ? (
+                      <div className="flex flex-col">
+                        <Field
+                          label="Email"
+                          name="member1_email"
+                          type="email"
+                          maxLength={255}
+                          value={member1Email}
+                          onChange={(e) => setMember1Email(e.target.value)}
+                          error={errors["member1_email"]}
+                          readOnly={emailVerified || otpSent}
+                        />
+                        {!emailVerified && (
+                          <div className="mt-2 flex flex-col gap-2">
+                            {otpSent ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="6-digit OTP"
+                                  className="field-underline w-full text-sm"
+                                  value={otp}
+                                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                                  maxLength={6}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleVerifyOtp}
+                                  disabled={verifying || otp.length !== 6}
+                                  className="btn-accent px-3 py-1 text-xs shrink-0 disabled:opacity-50"
+                                >
+                                  {verifying ? "..." : "Confirm"}
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={handleSendOtp}
+                                disabled={verifying || !member1Email}
+                                className="btn-accent px-3 py-1 text-xs self-start disabled:opacity-50"
+                              >
+                                {verifying ? "Sending..." : "Verify Email"}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {emailVerified && (
+                          <span className="mt-2 text-xs text-green-500 font-medium">✓ Email verified</span>
+                        )}
+                      </div>
+                    ) : (
+                      <Field
+                        label="Email"
+                        name={`member${n}_email`}
+                        type="email"
+                        maxLength={255}
+                        error={errors[`member${n}_email`]}
+                      />
+                    )}
                     <Field
                       label="Phone"
                       name={`member${n}_phone`}
@@ -423,7 +519,7 @@ export function RegistrationForm() {
               <div className="flex justify-center border-t border-border pt-10">
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !emailVerified}
                   className="btn-accent w-full px-10 py-4 text-sm disabled:opacity-60 sm:w-auto sm:min-w-[18rem]"
                 >
                   {submitting ? "Submitting…" : "Submit registration"}
