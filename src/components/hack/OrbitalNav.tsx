@@ -5,7 +5,7 @@ import { ArrowUpRight, Home, Info, Layers, Calendar, Mail } from "lucide-react";
 const NAV = [
   { id: "home", label: "Home", Icon: Home },
   { id: "about", label: "About", Icon: Info },
-  { id: "tracks", label: "Tracks", Icon: Layers },
+  { id: "significance", label: "SDG 04", Icon: Layers },
   { id: "schedule", label: "Schedule", Icon: Calendar },
   { id: "contact", label: "Contact", Icon: Mail },
 ];

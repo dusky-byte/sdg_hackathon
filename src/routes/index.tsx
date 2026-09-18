@@ -5,7 +5,7 @@ import { Cursor } from "@/components/hack/Cursor";
 import { Marquee } from "@/components/hack/Marquee";
 import { Hero } from "@/components/hack/Hero";
 import { StatsBar } from "@/components/hack/StatsBar";
-import { Tracks } from "@/components/hack/Tracks";
+import { SdgSignificance } from "@/components/hack/SdgSignificance";
 import { Sidebar } from "@/components/hack/Sidebar";
 import { RegistrationForm } from "@/components/hack/RegistrationForm";
 import { Reveal } from "@/components/hack/Reveal";
@@ -35,7 +35,6 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const [track, setTrack] = useState("");
 
   const goRegister = () =>
     document.getElementById("register")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -52,7 +51,7 @@ function Index() {
 
         <div className="grid gap-12 lg:grid-cols-[1fr_20rem] lg:gap-14">
           <div className="min-w-0">
-            <Tracks selected={track} onSelect={setTrack} />
+            <SdgSignificance />
           </div>
           <Reveal className="lg:pt-16">
             <Sidebar onRegister={goRegister} />
@@ -60,7 +59,7 @@ function Index() {
         </div>
 
         <div className="mt-20 space-y-20">
-          <RegistrationForm track={track} />
+          <RegistrationForm />
           <AboutSection />
           <ScheduleSection />
           <JudgingSection />

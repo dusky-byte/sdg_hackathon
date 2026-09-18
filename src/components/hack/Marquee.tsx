@@ -1,7 +1,7 @@
-import { TRACKS } from "./data";
+import { SDG_SIGNIFICANCE } from "./data";
 
 export function Marquee() {
-  const items = TRACKS.map((t) => t.label);
+  const items = SDG_SIGNIFICANCE.map((t) => t.label);
   const row = [...items, ...items, ...items];
 
   return (

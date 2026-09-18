@@ -106,33 +106,32 @@ function RegistrationsDashboard() {
 
   // Compute charts data
   const chartsData = useMemo(() => {
-    if (!registrations) return { byTrack: [], bySize: [] };
+    if (!registrations) return { byCollege: [], bySize: [] };
 
-    const trackCounts: Record<string, number> = {};
+    const collegeCounts: Record<string, number> = {};
     const sizeCounts: Record<number, number> = {};
 
     registrations.forEach((reg) => {
-      const t = reg.track || "Unspecified";
-      trackCounts[t] = (trackCounts[t] || 0) + 1;
+      const c = reg.college || "Unspecified";
+      collegeCounts[c] = (collegeCounts[c] || 0) + 1;
 
       const s = reg.team_size || 2;
       sizeCounts[s] = (sizeCounts[s] || 0) + 1;
     });
 
-    const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
-
-    const byTrack = Object.entries(trackCounts).map(([name, value], idx) => ({
-      name,
-      value,
-      fill: COLORS[idx % COLORS.length],
-    }));
+    const byCollege = Object.entries(collegeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([college, count]) => ({
+        college: college.length > 20 ? college.substring(0, 20) + "..." : college,
+        count,
+      }));
 
     const bySize = Object.entries(sizeCounts).map(([size, count]) => ({
       size: `${size} Members`,
       count,
     }));
 
-    return { byTrack, bySize };
+    return { byCollege, bySize };
   }, [registrations]);
 
   if (isLoading) {
@@ -148,8 +147,8 @@ function RegistrationsDashboard() {
 
   const visibleRegistrations = expanded ? registrations : registrations?.slice(0, 5);
 
-  const trackChartConfig = {
-    value: { label: "Teams" },
+  const collegeChartConfig = {
+    count: { label: "Teams", color: "hsl(var(--primary))" },
   };
 
   const sizeChartConfig = {
@@ -182,29 +181,18 @@ function RegistrationsDashboard() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Activity className="w-4 h-4 text-primary" />
-                Registrations by Track
+                Registrations by College
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={trackChartConfig} className="h-[250px] w-full">
-                <PieChart>
-                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                  <Pie
-                    data={chartsData.byTrack}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={2}
-                  >
-                    {chartsData.byTrack.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <ChartLegend content={<ChartLegendContent />} />
-                </PieChart>
+              <ChartContainer config={collegeChartConfig} className="h-[250px] w-full">
+                <BarChart data={chartsData.byCollege} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="college" tickLine={false} axisLine={false} tickMargin={10} />
+                  <YAxis tickLine={false} axisLine={false} tickMargin={10} />
+                  <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: 'var(--color-muted)' }} />
+                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ChartContainer>
             </CardContent>
           </Card>
@@ -240,7 +228,6 @@ function RegistrationsDashboard() {
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>Team Name</TableHead>
-                  <TableHead>Track</TableHead>
                   <TableHead>College</TableHead>
                   <TableHead className="text-right">Size</TableHead>
                 </TableRow>
@@ -310,7 +297,6 @@ function RegistrationRow({ reg }: { reg: any }) {
       <DialogTrigger asChild>
         <TableRow className="cursor-pointer hover:bg-muted/50 transition-colors">
           <TableCell className="font-medium">{reg.team_name}</TableCell>
-          <TableCell>{reg.track}</TableCell>
           <TableCell className="max-w-[200px] truncate" title={reg.college}>
             {reg.college}
           </TableCell>
@@ -347,9 +333,6 @@ function RegistrationRow({ reg }: { reg: any }) {
                   </Button>
                 </>
               )}
-              <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full font-medium uppercase tracking-wide">
-                {reg.track}
-              </span>
             </div>
             
             <Button 

@@ -15,7 +15,7 @@ export function Sidebar({ onRegister }: { onRegister: () => void }) {
 
       <div className="panel p-8">
         <p className="label-caps">Awards</p>
-        <p className="mt-2 text-foreground/90">7 award categories</p>
+        <p className="mt-2 text-foreground/90">3 award categories</p>
       </div>
 
       <div className="panel border-accent p-8">

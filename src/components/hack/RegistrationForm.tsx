@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { externalSupabase } from "@/lib/external-supabase";
-import { TRACKS } from "./data";
 
 const nameRule = z.string().trim().min(1, "Required").max(100).regex(/^[A-Za-z\s]+$/, "Only alphabetic characters allowed");
 const emailRule = z.string().trim().email("Invalid email address").max(255);
@@ -13,7 +12,6 @@ const phoneRule = z
 const schema = z.object({
   team_name: z.string().trim().min(1, "Required").max(100).regex(/^[A-Za-z\s]+$/, "Only alphabetic characters allowed"),
   college: z.string().trim().min(1, "Required").max(150).regex(/^[A-Za-z\s]+$/, "Only alphabetic characters allowed"),
-  track: z.string().trim().min(1, "Required").max(100),
   team_size: z.coerce.number().int().min(2, "Minimum 2").max(3, "Maximum 3"),
   member1_name: nameRule,
   member1_email: emailRule,
@@ -183,31 +181,27 @@ function CustomNumberInput({
   );
 }
 
-function QrBlock() {
-  const isFinder = (r: number, c: number) => {
-    const box = (r0: number, c0: number) =>
-      r >= r0 &&
-      r < r0 + 5 &&
-      c >= c0 &&
-      c < c0 + 5 &&
-      (r === r0 || r === r0 + 4 || c === c0 || c === c0 + 4 || (r === r0 + 2 && c === c0 + 2));
-    return box(0, 0) || box(0, 8) || box(8, 0);
-  };
-  const cells = Array.from({ length: 169 }, (_, i) => {
-    const r = Math.floor(i / 13);
-    const c = i % 13;
-    if ((r < 5 && (c < 5 || c > 7)) || (c < 5 && r > 7)) return isFinder(r, c);
-    return (r * 31 + c * 17 + r * c * 7) % 5 < 2;
-  });
-
+function RulebookDownload({ driveLink }: { driveLink?: string }) {
   return (
-    <div className="shrink-0">
-      <div className="grid w-36 grid-cols-[repeat(13,minmax(0,1fr))] gap-[2px] bg-foreground p-2">
-        {cells.map((on, i) => (
-          <span key={i} className={`aspect-square ${on ? "bg-background" : "bg-foreground"}`} />
-        ))}
-      </div>
-      <p className="label-caps mt-3">Scan to download rulebook</p>
+    <div className="shrink-0 flex flex-col items-start">
+      <p className="label-caps mb-4">Preparation</p>
+      <a 
+        href={driveLink || "#"} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="btn-accent px-6 py-3 text-sm text-center inline-flex items-center gap-2"
+        onClick={(e) => {
+          if (!driveLink || driveLink === "#") {
+            e.preventDefault();
+            alert("Rulebook link will be updated soon!");
+          }
+        }}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Download Rulebook
+      </a>
     </div>
   );
 }
@@ -235,18 +229,13 @@ function SuccessCheck() {
   );
 }
 
-export function RegistrationForm({ track }: { track: string }) {
-  const [selectedTrack, setSelectedTrack] = useState<string>(track || "");
+export function RegistrationForm() {
   const [teamSize, setTeamSize] = useState<number | "">(2);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [formError, setFormError] = useState("");
   const [showQr, setShowQr] = useState(false);
-
-  useEffect(() => {
-    if (track) setSelectedTrack(track);
-  }, [track]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -287,7 +276,7 @@ export function RegistrationForm({ track }: { track: string }) {
     const { error } = await externalSupabase.from("registrations").insert({
       team_name: d.team_name,
       college: d.college,
-      track: d.track,
+      track: "SDG 04",
       team_size: d.team_size,
       member1_name: d.member1_name,
       member1_email: d.member1_email,
@@ -336,17 +325,6 @@ export function RegistrationForm({ track }: { track: string }) {
                   error={errors["college"]}
                   onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "") }}
                 />
-                <label className="block">
-                  <span className="label-caps">Track</span>
-                  <CustomSelect
-                    name="track"
-                    value={selectedTrack}
-                    onChange={(val) => setSelectedTrack(val)}
-                    options={TRACKS.map((t) => t.label)}
-                    placeholder="Select a track"
-                  />
-                  {errors["track"] && <span className="mt-1 block text-xs text-destructive">{errors["track"]}</span>}
-                </label>
                 <CustomNumberInput
                   label="Team size (2–3)"
                   name="team_size"
@@ -402,8 +380,8 @@ export function RegistrationForm({ track }: { track: string }) {
                         Show QR Code
                       </button>
                     ) : (
-                      <div className="bg-foreground w-64 h-64 flex items-center justify-center p-2 text-background text-xs text-center aspect-square mx-auto sm:mx-0">
-                        [Your QR Code Here]
+                      <div className="w-64 h-64 flex items-center justify-center mx-auto sm:mx-0 overflow-hidden rounded-lg border border-border bg-foreground/5 p-2">
+                        <img src="/payment/payment_qr.jpg" alt="Payment QR Code" className="w-full h-full object-contain mix-blend-multiply" />
                       </div>
                     )}
                   </div>
@@ -461,7 +439,7 @@ export function RegistrationForm({ track }: { track: string }) {
           )}
         </div>
 
-        <QrBlock />
+        <RulebookDownload />
       </div>
     </section>
   );

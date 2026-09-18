@@ -1,14 +1,13 @@
-export const TRACKS = [
-  { label: "AI for Education", blurb: "Tutors, assessment and tools powered by AI." },
-  { label: "Education for All", blurb: "Reaching learners with limited access or resources." },
-  { label: "Inclusive Education", blurb: "Designing for disability, language and neurodiversity." },
-  { label: "Learn Through Play", blurb: "Games, simulations and playful learning experiences." },
-  { label: "Future & Career Ready", blurb: "Skills, mentoring and pathways into work." },
+export const SDG_SIGNIFICANCE = [
+  { label: "Empowering Futures", blurb: "Education is the foundation for improving lives and achieving sustainable development." },
+  { label: "Reducing Inequalities", blurb: "Access to quality education helps bridge the gap between different socioeconomic groups." },
+  { label: "Driving Innovation", blurb: "Educated minds are the primary catalysts for technological and social innovation." },
+  { label: "Global Prosperity", blurb: "Inclusive education boosts economic growth and fosters global peace and stability." },
 ] as const;
 
 export const STATS = [
   ["2–3", "Team size"],
-  ["7–8 hrs", "Duration"],
+  ["5–6 hrs", "Duration"],
   ["3 min", "Pitch time"],
 ] as const;
 
@@ -53,7 +52,7 @@ export const STEPS = [
 ] as const;
 
 export const TOOLS =
-  "Canva, Figma, HTML/CSS/JS, Python, Scratch, MIT App Inventor, no-code tools, or generative AI.";
+  "Canva, Figma, HTML/CSS/JS, Python, IoT, Scratch, MIT App Inventor, no-code tools, or generative AI.";
 
 export const COORDINATORS = [
   { name: "Pranesh", role: "Student Coordinator", phone: "9843963338" },
