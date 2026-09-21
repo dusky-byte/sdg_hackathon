@@ -185,8 +185,8 @@ function RulebookDownload() {
   return (
     <div className="shrink-0 flex flex-col items-start">
       <p className="label-caps mb-4">Preparation</p>
-      <a 
-        href="/files/Hack2Hustle_Rule_Book.pdf" 
+      <a
+        href="/files/Hack2Hustle_Rule_Book.pdf"
         download="Hack2Hustle_Rule_Book.pdf"
         target="_blank"
         rel="noopener noreferrer"
@@ -279,7 +279,7 @@ export function RegistrationForm() {
 
   async function handleSendOtp() {
     if (!member1Email) return;
-    
+
     // Force save draft to ensure no details (like Member 3) are lost before verification
     const form = document.querySelector('form');
     if (form) {
@@ -308,7 +308,7 @@ export function RegistrationForm() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setFormError("");
-    
+
     if (!emailVerified) {
       setFormError("Please verify the Team Leader's email (Member 1) before submitting.");
       return;
@@ -331,7 +331,7 @@ export function RegistrationForm() {
     // Upload payment screenshot
     const fileExt = d.payment_screenshot.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    
+
     const { error: uploadError } = await externalSupabase.storage
       .from("payment_screenshots")
       .upload(fileName, d.payment_screenshot);
@@ -442,7 +442,16 @@ export function RegistrationForm() {
                           <div className="mt-2 flex flex-col gap-2">
                             {otpSent ? (
                               <div className="p-3 bg-accent/10 border border-accent rounded-md text-sm">
-                                <p className="font-semibold text-accent mb-1">Check your inbox!</p>
+                                <div className="flex justify-between items-start mb-1">
+                                  <p className="font-semibold text-accent">Check your inbox!</p>
+                                  <button
+                                    type="button"
+                                    onClick={handleResetVerification}
+                                    className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
+                                  >
+                                    Wrong email?
+                                  </button>
+                                </div>
                                 <p>We sent a magic link to your email. <strong>Keep this tab open</strong> and click the link in your email. This page will automatically verify once you click it!</p>
                               </div>
                             ) : (
@@ -458,7 +467,16 @@ export function RegistrationForm() {
                           </div>
                         )}
                         {emailVerified && (
-                          <span className="mt-2 text-xs text-green-500 font-medium">✓ Email verified</span>
+                          <div className="mt-2 flex items-center justify-between">
+                            <span className="text-xs text-green-500 font-medium">✓ Email verified</span>
+                            <button
+                              type="button"
+                              onClick={handleResetVerification}
+                              className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
+                            >
+                              Change email
+                            </button>
+                          </div>
                         )}
                       </div>
                     ) : (
