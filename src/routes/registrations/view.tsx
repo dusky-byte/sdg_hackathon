@@ -229,6 +229,7 @@ function RegistrationsDashboard() {
                 <TableRow>
                   <TableHead>Team Name</TableHead>
                   <TableHead>College</TableHead>
+                  <TableHead>Transaction ID</TableHead>
                   <TableHead className="text-right">Size</TableHead>
                 </TableRow>
               </TableHeader>
@@ -305,6 +306,9 @@ function RegistrationRow({ reg }: { reg: any }) {
           <TableCell className="font-medium">{reg.team_name}</TableCell>
           <TableCell className="max-w-[200px] truncate" title={reg.college}>
             {reg.college}
+          </TableCell>
+          <TableCell className="font-mono text-xs text-muted-foreground">
+            {reg.transaction_id || "N/A"}
           </TableCell>
           <TableCell className="text-right">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
@@ -407,6 +411,23 @@ function RegistrationRow({ reg }: { reg: any }) {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-semibold text-lg border-b pb-2">Payment Details</h3>
+            <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
+              <p className="text-sm text-muted-foreground font-medium mb-1">Transaction ID</p>
+              <p className="font-mono text-sm mb-4">{reg.transaction_id || "N/A"}</p>
+              
+              <p className="text-sm text-muted-foreground font-medium mb-2">Screenshot</p>
+              {reg.payment_screenshot_url ? (
+                <a href={reg.payment_screenshot_url} target="_blank" rel="noopener noreferrer" className="block max-w-sm rounded-md overflow-hidden border border-border/50 hover:opacity-90 transition-opacity">
+                  <img src={reg.payment_screenshot_url} alt="Payment Screenshot" className="w-full h-auto object-contain bg-muted" />
+                </a>
+              ) : (
+                <p className="text-sm italic text-muted-foreground">No screenshot uploaded</p>
+              )}
+            </div>
           </div>
         </div>
       </DialogContent>
