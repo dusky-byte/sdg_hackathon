@@ -305,6 +305,12 @@ export function RegistrationForm() {
     }
   }
 
+  async function handleResetVerification() {
+    await externalSupabase.auth.signOut();
+    setEmailVerified(false);
+    setOtpSent(false);
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setFormError("");
