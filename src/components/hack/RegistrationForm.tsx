@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase as externalSupabase } from "@/integrations/supabase/client";
+import { firebaseAuth } from "@/integrations/firebase/firebase";
+import { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, onAuthStateChanged, signOut } from "firebase/auth";
 
 const nameRule = z.string().trim().min(1, "Required").max(100).regex(/^[A-Za-z\s]+$/, "Only alphabetic characters allowed");
 const emailRule = z.string().trim().email("Invalid email address").max(255);
@@ -254,25 +256,42 @@ export function RegistrationForm() {
     } catch {}
     setMounted(true);
 
-    // Check if they are already verified (e.g., they clicked the link and were redirected here)
-    externalSupabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.email) {
-        setMember1Email(session.user.email);
+    // Firebase Magic Link check
+    if (isSignInWithEmailLink(firebaseAuth, window.location.href)) {
+      let email = window.localStorage.getItem('emailForSignIn');
+      if (!email) {
+        const saved = localStorage.getItem("registration_draft");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            email = parsed["member1_email"];
+          } catch {}
+        }
+      }
+      if (email) {
+        signInWithEmailLink(firebaseAuth, email, window.location.href)
+          .then((result) => {
+            window.localStorage.removeItem('emailForSignIn');
+            // Clean up the URL
+            window.history.replaceState(null, '', window.location.pathname);
+          })
+          .catch((err) => {
+            console.error("Error signing in with email link", err);
+          });
+      }
+    }
+
+    // Listen for auth changes
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      if (user?.email) {
+        setMember1Email(user.email);
         setEmailVerified(true);
+      } else {
+        // setEmailVerified(false); // Don't reset if they are filling form
       }
     });
 
-    // Listen for auth changes. If they click the link in another tab, this tab will magically update!
-    const {
-      data: { subscription },
-    } = externalSupabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user?.email) {
-        setMember1Email(session.user.email);
-        setEmailVerified(true);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   const handleFormChange = (e: React.FormEvent<HTMLFormElement>) => {
@@ -297,22 +316,24 @@ export function RegistrationForm() {
 
     setVerifying(true);
     setFormError("");
-    const { error } = await externalSupabase.auth.signInWithOtp({
-      email: member1Email,
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    setVerifying(false);
-    if (error) {
-      setFormError(`Failed to send link: ${error.message}`);
-    } else {
+    
+    const actionCodeSettings = {
+      url: window.location.origin + window.location.pathname,
+      handleCodeInApp: true,
+    };
+
+    try {
+      await sendSignInLinkToEmail(firebaseAuth, member1Email, actionCodeSettings);
+      window.localStorage.setItem('emailForSignIn', member1Email);
       setOtpSent(true);
+    } catch (error: any) {
+      setFormError(`Failed to send link: ${error.message}`);
     }
+    setVerifying(false);
   }
 
   async function handleResetVerification() {
-    await externalSupabase.auth.signOut();
+    await signOut(firebaseAuth);
     setEmailVerified(false);
     setOtpSent(false);
   }
