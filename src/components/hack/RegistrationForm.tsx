@@ -225,17 +225,11 @@ function SuccessCheck() {
 }
 
 export function RegistrationForm() {
-  // Load draft from localStorage on initial render
-  const [draft] = useState<Record<string, any>>(() => {
-    try {
-      const saved = typeof window !== "undefined" ? localStorage.getItem("registration_draft") : null;
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
+  const [draft, setDraft] = useState<Record<string, any>>({});
+  const [teamSize, setTeamSize] = useState<number | "">(2);
+  const [mounted, setMounted] = useState(false);
 
-  const [teamSize, setTeamSize] = useState<number | "">(draft["team_size"] ? parseInt(draft["team_size"]) : 2);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -248,6 +242,18 @@ export function RegistrationForm() {
   const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem("registration_draft");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setDraft(parsed);
+        if (parsed["team_size"]) {
+          setTeamSize(parseInt(parsed["team_size"]));
+        }
+      }
+    } catch {}
+    setMounted(true);
+
     // Check if they are already verified (e.g., they clicked the link and were redirected here)
     externalSupabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) {
@@ -380,6 +386,10 @@ export function RegistrationForm() {
     // Clear draft on successful submission
     localStorage.removeItem("registration_draft");
     setDone(true);
+  }
+
+  if (!mounted) {
+    return <div className="min-h-screen" />; // Wait for client hydration to prevent Error #418
   }
 
   return (
