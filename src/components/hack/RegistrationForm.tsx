@@ -242,6 +242,16 @@ export function RegistrationForm() {
   const [emailVerified, setEmailVerified] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  
+  const [cooldown, setCooldown] = useState(0);
+  const [requestCount, setRequestCount] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   useEffect(() => {
     try {
@@ -326,6 +336,12 @@ export function RegistrationForm() {
       await sendSignInLinkToEmail(firebaseAuth, member1Email, actionCodeSettings);
       window.localStorage.setItem('emailForSignIn', member1Email);
       setOtpSent(true);
+      
+      const newCount = requestCount + 1;
+      setRequestCount(newCount);
+      // Exponential backoff: 30s, 60s, 120s, max 5 minutes
+      const newCooldown = Math.min(30 * Math.pow(2, newCount - 1), 300);
+      setCooldown(newCooldown);
     } catch (error: any) {
       setFormError(`Failed to send link: ${error.message}`);
     }
@@ -495,10 +511,10 @@ export function RegistrationForm() {
                               <button
                                 type="button"
                                 onClick={handleSendOtp}
-                                disabled={verifying || !member1Email}
+                                disabled={verifying || !member1Email || cooldown > 0}
                                 className="btn-accent px-3 py-1 text-xs self-start disabled:opacity-50"
                               >
-                                {verifying ? "Sending..." : "Verify Email"}
+                                {verifying ? "Sending..." : cooldown > 0 ? `Wait ${cooldown}s` : "Verify Email"}
                               </button>
                             )}
                           </div>
