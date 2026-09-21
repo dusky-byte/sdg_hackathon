@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase as externalSupabase } from "@/integrations/supabase/client";
-import { firebaseAuth } from "@/integrations/firebase/firebase";
-import { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, onAuthStateChanged, signOut } from "firebase/auth";
 
 const nameRule = z.string().trim().min(1, "Required").max(100).regex(/^[A-Za-z\s]+$/, "Only alphabetic characters allowed");
 const emailRule = z.string().trim().email("Invalid email address").max(255);
@@ -243,6 +241,8 @@ export function RegistrationForm() {
   const [otpSent, setOtpSent] = useState(false);
   const [verifying, setVerifying] = useState(false);
   
+  const [otpInput, setOtpInput] = useState("");
+  
   const [cooldown, setCooldown] = useState(0);
   const [requestCount, setRequestCount] = useState(0);
 
@@ -265,43 +265,7 @@ export function RegistrationForm() {
       }
     } catch {}
     setMounted(true);
-
-    // Firebase Magic Link check
-    if (isSignInWithEmailLink(firebaseAuth, window.location.href)) {
-      let email = window.localStorage.getItem('emailForSignIn');
-      if (!email) {
-        const saved = localStorage.getItem("registration_draft");
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            email = parsed["member1_email"];
-          } catch {}
-        }
-      }
-      if (email) {
-        signInWithEmailLink(firebaseAuth, email, window.location.href)
-          .then((result) => {
-            window.localStorage.removeItem('emailForSignIn');
-            // Clean up the URL
-            window.history.replaceState(null, '', window.location.pathname);
-          })
-          .catch((err) => {
-            console.error("Error signing in with email link", err);
-          });
-      }
-    }
-
-    // Listen for auth changes
-    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-      if (user?.email) {
-        setMember1Email(user.email);
-        setEmailVerified(true);
-      } else {
-        // setEmailVerified(false); // Don't reset if they are filling form
-      }
-    });
-
-    return () => unsubscribe();
+    setMounted(true);
   }, []);
 
   const handleFormChange = (e: React.FormEvent<HTMLFormElement>) => {
@@ -327,15 +291,21 @@ export function RegistrationForm() {
     setVerifying(true);
     setFormError("");
     
-    const actionCodeSettings = {
-      url: window.location.origin + window.location.pathname,
-      handleCodeInApp: true,
-    };
-
     try {
-      await sendSignInLinkToEmail(firebaseAuth, member1Email, actionCodeSettings);
-      window.localStorage.setItem('emailForSignIn', member1Email);
+      const response = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: member1Email }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+
       setOtpSent(true);
+      setOtpInput("");
       
       const newCount = requestCount + 1;
       setRequestCount(newCount);
@@ -343,15 +313,45 @@ export function RegistrationForm() {
       const newCooldown = Math.min(30 * Math.pow(2, newCount - 1), 300);
       setCooldown(newCooldown);
     } catch (error: any) {
-      setFormError(`Failed to send link: ${error.message}`);
+      setFormError(error.message);
+    }
+    setVerifying(false);
+  }
+
+  async function handleVerifyOtp() {
+    if (!otpInput || otpInput.length !== 6) {
+      setFormError("Please enter a valid 6-digit code.");
+      return;
+    }
+
+    setVerifying(true);
+    setFormError("");
+
+    try {
+      const response = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: member1Email, otp: otpInput }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Invalid verification code');
+      }
+
+      setEmailVerified(true);
+      setOtpSent(false); // Hide the OTP input UI
+    } catch (error: any) {
+      setFormError(error.message);
     }
     setVerifying(false);
   }
 
   async function handleResetVerification() {
-    await signOut(firebaseAuth);
     setEmailVerified(false);
     setOtpSent(false);
+    setOtpInput("");
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -495,8 +495,8 @@ export function RegistrationForm() {
                           <div className="mt-2 flex flex-col gap-2">
                             {otpSent ? (
                               <div className="p-3 bg-accent/10 border border-accent rounded-md text-sm">
-                                <div className="flex justify-between items-start mb-1">
-                                  <p className="font-semibold text-accent">Check your inbox!</p>
+                                <div className="flex justify-between items-start mb-2">
+                                  <p className="font-semibold text-accent">Enter 6-digit Code</p>
                                   <button
                                     type="button"
                                     onClick={handleResetVerification}
@@ -505,7 +505,25 @@ export function RegistrationForm() {
                                     Wrong email?
                                   </button>
                                 </div>
-                                <p>We sent a magic link to your email. <strong>Keep this tab open</strong> and click the link in your email. This page will automatically verify once you click it!</p>
+                                <p className="mb-3 text-muted-foreground">We sent a verification code to your email.</p>
+                                <div className="flex gap-2">
+                                  <input 
+                                    type="text"
+                                    maxLength={6}
+                                    value={otpInput}
+                                    onChange={(e) => setOtpInput(e.target.value.replace(/[^0-9]/g, ''))}
+                                    placeholder="000000"
+                                    className="px-3 py-1 bg-background border border-border rounded-md font-mono text-center w-24 focus:outline-none focus:border-accent"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={handleVerifyOtp}
+                                    disabled={verifying || otpInput.length !== 6}
+                                    className="btn-accent px-4 py-1 text-xs disabled:opacity-50"
+                                  >
+                                    {verifying ? "Verifying..." : "Verify Code"}
+                                  </button>
+                                </div>
                               </div>
                             ) : (
                               <button
