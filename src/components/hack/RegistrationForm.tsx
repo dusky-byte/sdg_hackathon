@@ -279,6 +279,16 @@ export function RegistrationForm() {
 
   async function handleSendOtp() {
     if (!member1Email) return;
+    
+    // Force save draft to ensure no details (like Member 3) are lost before verification
+    const form = document.querySelector('form');
+    if (form) {
+      const formData = new FormData(form);
+      formData.delete("payment_screenshot");
+      const data = Object.fromEntries(formData.entries());
+      localStorage.setItem("registration_draft", JSON.stringify(data));
+    }
+
     setVerifying(true);
     setFormError("");
     const { error } = await externalSupabase.auth.signInWithOtp({
