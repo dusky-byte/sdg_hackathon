@@ -12,7 +12,7 @@ function RegisterRoute() {
     <div className="film-grain relative min-h-screen">
       <Cursor />
 
-      <main className="mx-auto min-w-0 max-w-[800px] px-5 pb-12 pt-12 sm:px-8">
+      <main className="mx-auto min-w-0 max-w-[1400px] px-5 pb-20 pt-12 sm:px-8">
         <Link 
           to="/"
           className="mb-8 inline-flex items-center gap-2 font-mono text-sm text-accent transition-colors hover:text-accent-foreground"
