@@ -7,7 +7,7 @@ export const SDG_SIGNIFICANCE = [
 
 export const STATS = [
   ["2–3", "Team size"],
-  ["5–6 hrs", "Duration"],
+  ["6 hrs", "Duration"],
   ["3 min", "Pitch time"],
 ] as const;
 

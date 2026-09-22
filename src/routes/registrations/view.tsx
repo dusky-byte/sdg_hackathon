@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Lock, Users, Activity, ExternalLink, Hash, Edit2, Trash2, Check, X } from "lucide-react";
+import { Lock, Users, Activity, ExternalLink, Hash, Edit2, Trash2, Check, X, CalendarDays, DollarSign } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,10 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
+
+const COLORS = ['#e11d48', '#f43f5e', '#fb7185', '#fda4af', '#ffe4e6'];
+const PAY_COLORS = ['#10b981', '#f43f5e'];
 
 export const Route = createFileRoute("/registrations/view")({
   component: DashboardAuthGuard,
@@ -106,10 +109,13 @@ function RegistrationsDashboard() {
 
   // Compute charts data
   const chartsData = useMemo(() => {
-    if (!registrations) return { byCollege: [], bySize: [] };
+    if (!registrations) return { byCollege: [], bySize: [], timeline: [], paymentStatus: [] };
 
     const collegeCounts: Record<string, number> = {};
     const sizeCounts: Record<number, number> = {};
+    const dateCounts: Record<string, number> = {};
+    let paidCount = 0;
+    let unpaidCount = 0;
 
     registrations.forEach((reg) => {
       const c = reg.college || "Unspecified";
@@ -117,21 +123,46 @@ function RegistrationsDashboard() {
 
       const s = reg.team_size || 2;
       sizeCounts[s] = (sizeCounts[s] || 0) + 1;
+
+      if (reg.created_at) {
+        const dateObj = new Date(reg.created_at);
+        const dateStr = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`; 
+        dateCounts[dateStr] = (dateCounts[dateStr] || 0) + 1;
+      }
+      
+      if (reg.transaction_id) {
+        paidCount++;
+      } else {
+        unpaidCount++;
+      }
     });
 
     const byCollege = Object.entries(collegeCounts)
       .sort((a, b) => b[1] - a[1])
       .map(([college, count]) => ({
-        college: college.length > 20 ? college.substring(0, 20) + "..." : college,
-        count,
+        name: college.length > 20 ? college.substring(0, 20) + "..." : college,
+        value: count,
       }));
 
     const bySize = Object.entries(sizeCounts).map(([size, count]) => ({
       size: `${size} Members`,
       count,
     }));
+    
+    const timeline = Object.entries(dateCounts)
+      .map(([date, count]) => {
+         const parts = date.split('/');
+         return { date, count, sortVal: parseInt(parts[1]) * 100 + parseInt(parts[0]) };
+      })
+      .sort((a, b) => a.sortVal - b.sortVal)
+      .map(({ date, count }) => ({ date, count }));
 
-    return { byCollege, bySize };
+    const paymentStatus = [
+      { name: "Verified Payments", value: paidCount },
+      { name: "Pending", value: unpaidCount }
+    ];
+
+    return { byCollege, bySize, timeline, paymentStatus };
   }, [registrations]);
 
   if (isLoading) {
@@ -180,19 +211,19 @@ function RegistrationsDashboard() {
           <Card className="bg-background/80 backdrop-blur-md border-border/50">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Activity className="w-4 h-4 text-primary" />
-                Registrations by College
+                <CalendarDays className="w-4 h-4 text-primary" />
+                Registrations Timeline
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer config={collegeChartConfig} className="h-[250px] w-full">
-                <BarChart data={chartsData.byCollege} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+                <LineChart data={chartsData.timeline} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="college" tickLine={false} axisLine={false} tickMargin={10} />
+                  <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={10} />
                   <YAxis tickLine={false} axisLine={false} tickMargin={10} />
                   <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: 'var(--color-muted)' }} />
-                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  <Line type="monotone" dataKey="count" stroke="#e11d48" strokeWidth={3} dot={{ r: 4, fill: "#e11d48" }} />
+                </LineChart>
               </ChartContainer>
             </CardContent>
           </Card>
@@ -211,8 +242,72 @@ function RegistrationsDashboard() {
                   <XAxis dataKey="size" tickLine={false} axisLine={false} tickMargin={10} />
                   <YAxis tickLine={false} axisLine={false} tickMargin={10} />
                   <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: 'var(--color-muted)' }} />
-                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="#e11d48" radius={[4, 4, 0, 0]} />
                 </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-background/80 backdrop-blur-md border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Activity className="w-4 h-4 text-primary" />
+                Registrations by College
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={collegeChartConfig} className="h-[250px] w-full">
+                <PieChart>
+                  <Pie
+                    data={chartsData.byCollege}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="value"
+                    nameKey="name"
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  >
+                    {chartsData.byCollege.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} className="flex-wrap" />
+                </PieChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-background/80 backdrop-blur-md border-border/50">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-primary" />
+                Payment Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={collegeChartConfig} className="h-[250px] w-full">
+                <PieChart>
+                  <Pie
+                    data={chartsData.paymentStatus}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="value"
+                    nameKey="name"
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  >
+                    {chartsData.paymentStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={PAY_COLORS[index % PAY_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                </PieChart>
               </ChartContainer>
             </CardContent>
           </Card>

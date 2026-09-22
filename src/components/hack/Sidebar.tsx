@@ -1,3 +1,4 @@
+import { MessageCircle } from "lucide-react";
 import { Countdown } from "./Countdown";
 import { COORDINATORS } from "./data";
 
@@ -48,6 +49,19 @@ export function Sidebar({ onRegister }: { onRegister: () => void }) {
               </a>
             </div>
           ))}
+        </div>
+        
+        <div className="mt-8 border-t border-border pt-6">
+          <p className="label-caps mb-4">Event Updates</p>
+          <a
+            href="https://chat.whatsapp.com/Cv5WDAyFEgrLd7PF05MG2A?s=cl&p=a&mlu=4&ilr=4"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-6 py-3 text-sm font-semibold text-accent transition-all hover:bg-accent hover:text-accent-foreground"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Join WhatsApp Group
+          </a>
         </div>
       </div>
     </aside>
