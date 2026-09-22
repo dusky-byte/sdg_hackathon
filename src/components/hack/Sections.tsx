@@ -63,7 +63,7 @@ export function ScheduleSection() {
 
 export function SiteFooter() {
   return (
-    <footer className="mt-20 border-t border-border py-10 text-sm text-foreground/45">
+    <footer className="mt-12 border-t border-border pt-6 pb-2 text-sm text-foreground/45">
       <p>
         SRM Institute of Science and Technology — Dept. of Computer Science &amp; Dept. of Computer
         Applications, in collaboration with REACH.

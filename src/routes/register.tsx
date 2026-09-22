@@ -21,7 +21,7 @@ function RegisterRoute() {
         </Link>
         <RegistrationForm />
         
-        <div className="mt-20">
+        <div className="mt-8">
           <SiteFooter />
         </div>
       </main>
