@@ -91,6 +91,20 @@ function DashboardAuthGuard() {
   return <RegistrationsDashboard />;
 }
 
+function normalizeCollegeName(rawName: string): string {
+  if (!rawName) return "Unspecified";
+  const name = rawName.toLowerCase().trim().replace(/[.,]/g, "");
+
+  if (name.includes("srm") || name.includes("srmist")) return "SRM Institute of Science & Technology";
+  if (name.includes("sairam")) return "Sri Sairam Engineering College";
+  if (name.includes("karpaga vinayaga") || name === "kvcet" || name.includes("kvcet")) return "Karpaga Vinayaga College";
+  if (name.includes("prince shri bhavani")) return "Prince Shri Bhavani";
+  if (name.includes("hyabama") || name.includes("sathyabama")) return "Sathyabama University";
+  if (name.includes("mma")) return "MMA College of Engineering";
+
+  return name.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function RegistrationsDashboard() {
   const { data: registrations, isLoading } = useQuery({
     queryKey: ["registrations"],
@@ -118,7 +132,7 @@ function RegistrationsDashboard() {
     let unpaidCount = 0;
 
     registrations.forEach((reg) => {
-      const c = reg.college || "Unspecified";
+      const c = normalizeCollegeName(reg.college);
       collegeCounts[c] = (collegeCounts[c] || 0) + 1;
 
       const s = reg.team_size || 2;
