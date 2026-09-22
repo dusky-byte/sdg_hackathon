@@ -9,7 +9,7 @@ const fadeUp = {
 
 export function Hero({ onRegister }: { onRegister: () => void }) {
   return (
-    <section id="home" className="relative min-h-[90vh]">
+    <section id="home" className="relative min-h-[90vh] overflow-hidden">
       <div className="absolute inset-0 overflow-hidden rounded-xl">
         <img
           src={heroImage}
@@ -37,22 +37,42 @@ export function Hero({ onRegister }: { onRegister: () => void }) {
         >
           SDG 4 — Quality Education
         </motion.p>
+        {/* Large watermark logo */}
+        <div className="absolute -bottom-4 -right-4 sm:-bottom-8 sm:-right-8 pointer-events-none opacity-15 grayscale">
+          <img
+            src="/srm-logo.png"
+            alt=""
+            className="w-[100px] h-[100px] sm:w-[250px] sm:h-[250px] object-contain"
+          />
+        </div>
 
-        <motion.h1
+        <motion.div
           {...fadeUp}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="font-brand text-[13vw] leading-[0.95] tracking-[0.02em] text-foreground sm:text-[9vw] lg:text-[7.5vw]"
+          className="flex flex-col relative z-10"
         >
-          HACK 2 HUSTLE
-        </motion.h1>
+          <p className="flex items-center gap-2.5 text-[15px] sm:text-lg leading-relaxed text-foreground/70">
+            <img
+              src="/srm-logo.png"
+              alt="SRM Logo"
+              className="w-5 h-5 sm:w-6 sm:h-6"
+            />
+            <span className="sm:hidden">SRMIST, KTR invites you to</span>
+            <span className="hidden sm:inline">SRM Institute of Science and Technology, Kattankulathur invites you to</span>
+          </p>
+          <h1 className="font-brand text-[clamp(3.5rem,11vw,7.5rem)] leading-[0.95] tracking-[0.02em] text-foreground -mt-1 sm:-mt-5">
+            HACK 2 HUSTLE
+          </h1>
+        </motion.div>
 
-        <motion.p
+        <motion.div
           {...fadeUp}
           transition={{ duration: 0.7, delay: 0.4 }}
-          className="max-w-xl text-lg leading-relaxed text-foreground/70"
         >
-          An inter-college mini-hackathon — learn, create, share.
-        </motion.p>
+          <p className="max-w-xl text-lg leading-relaxed text-foreground/60">
+            An inter-college mini-hackathon — learn, create, share.
+          </p>
+        </motion.div>
 
         <motion.div
           {...fadeUp}

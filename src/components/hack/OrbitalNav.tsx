@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, Home, Info, Layers, Calendar, Mail } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 
 const NAV = [
   { id: "home", label: "Home", Icon: Home },
@@ -14,7 +15,8 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-export function OrbitalNav({ onRegister }: { onRegister: () => void }) {
+export function OrbitalNav({ onRegister }: { onRegister?: () => void }) {
+  const navigate = useNavigate({ from: "/" });
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -35,9 +37,12 @@ export function OrbitalNav({ onRegister }: { onRegister: () => void }) {
 
   const radius = isMobile ? 112 : 150;
 
-  // Quarter arc sweeping down and to the right from the top-left corner.
+  // Desktop: arc down-right (0 to 90 deg)
+  // Mobile: arc up-left (180 to 270 deg)
   const offsets = NAV.map((_, i) => {
-    const deg = 8 + (i / (NAV.length - 1)) * 80;
+    const baseDeg = isMobile ? 188 : 8;
+    const sweep = isMobile ? 72 : 80;
+    const deg = baseDeg + (i / (NAV.length - 1)) * sweep;
     const rad = (deg * Math.PI) / 180;
     return { x: Math.cos(rad) * radius, y: Math.sin(rad) * radius };
   });
@@ -53,7 +58,7 @@ export function OrbitalNav({ onRegister }: { onRegister: () => void }) {
         />
       )}
 
-      <div className="absolute left-3 top-3 z-50 sm:left-4 sm:top-4" aria-label="Site navigation">
+      <div className="fixed bottom-4 right-4 z-[99] sm:absolute sm:left-4 sm:top-4 sm:bottom-auto sm:right-auto sm:z-50" aria-label="Site navigation">
         <div className="relative">
           <AnimatePresence>
             {open &&
@@ -81,7 +86,7 @@ export function OrbitalNav({ onRegister }: { onRegister: () => void }) {
                     className="group flex h-11 w-11 items-center justify-center rounded-full border border-accent bg-background text-foreground/80 transition-transform hover:scale-[1.15] hover:text-foreground"
                   >
                     <Icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                    <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/70 opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="pointer-events-none absolute right-full mr-3 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/70 opacity-0 transition-opacity group-hover:opacity-100 sm:left-full sm:right-auto sm:ml-3 sm:mr-0">
                       {label}
                     </span>
                   </button>
@@ -110,7 +115,7 @@ export function OrbitalNav({ onRegister }: { onRegister: () => void }) {
 
       <button
         type="button"
-        onClick={onRegister}
+        onClick={() => navigate({ to: "/register" })}
         className="btn-accent absolute right-3 top-3 z-50 inline-flex items-center gap-2 px-6 py-3 text-sm sm:right-4 sm:top-4 sm:px-7 sm:py-3.5"
         style={{ borderRadius: "999px" }}
       >

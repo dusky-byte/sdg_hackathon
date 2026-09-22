@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { Cursor } from "@/components/hack/Cursor";
@@ -7,7 +7,6 @@ import { Hero } from "@/components/hack/Hero";
 import { StatsBar } from "@/components/hack/StatsBar";
 import { SdgSignificance } from "@/components/hack/SdgSignificance";
 import { Sidebar } from "@/components/hack/Sidebar";
-import { RegistrationForm } from "@/components/hack/RegistrationForm";
 import { Reveal } from "@/components/hack/Reveal";
 import {
   AboutSection,
@@ -34,33 +33,39 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-
-  const goRegister = () =>
-    document.getElementById("register")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const navigate = useNavigate();
+  const goRegister = () => navigate({ to: "/register" });
 
   return (
     <div className="film-grain relative">
       <Cursor />
 
-
-      <main className="mx-auto min-w-0 max-w-[1400px] px-5 pb-28 pt-4 sm:px-8">
+      <main className="mx-auto min-w-0 max-w-[1400px] px-5 pb-20 pt-4 sm:px-8">
         <Hero onRegister={goRegister} />
         <Marquee />
+        
+        <Reveal delay={0.1}>
+          <div className="py-6 sm:py-10 text-center">
+            <p className="font-mono text-xs tracking-[0.2em] uppercase text-accent mb-2">
+              Conducted By
+            </p>
+            <h2 className="font-display text-xl sm:text-2xl lg:text-3xl leading-tight text-foreground/90">
+              Department of Computer Applications <span className="text-accent mx-2 sm:mx-4">&amp;</span> Department of Computer Science
+            </h2>
+          </div>
+        </Reveal>
+
         <StatsBar />
 
-        <div className="grid gap-12 lg:grid-cols-[1fr_20rem] lg:gap-14">
-          <div className="min-w-0">
+        <div className="mt-12 grid gap-12 lg:mt-16 lg:grid-cols-[1fr_20rem] lg:gap-14">
+          <div className="min-w-0 space-y-12 lg:space-y-16">
+            <AboutSection />
             <SdgSignificance />
+            <ScheduleSection />
           </div>
-          <Reveal className="lg:pt-16">
+          <Reveal>
             <Sidebar onRegister={goRegister} />
           </Reveal>
-        </div>
-
-        <div className="mt-20 space-y-20">
-          <RegistrationForm />
-          <AboutSection />
-          <ScheduleSection />
         </div>
 
         <SiteFooter />

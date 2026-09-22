@@ -39,8 +39,8 @@ function Field({
   error?: string | undefined;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className="block">
-      <span className="label-caps">{label}</span>
+    <label className="block group">
+      <span className="label-caps font-mono text-foreground/90 transition-colors group-focus-within:text-accent">{label}</span>
       <input id={name} name={name} className="field-underline mt-2" {...rest} />
       {error && <span className="mt-1 block text-xs text-destructive">{error}</span>}
     </label>
@@ -130,8 +130,8 @@ function CustomNumberInput({
   };
 
   return (
-    <label className="block">
-      <span className="label-caps">{label}</span>
+    <label className="block group">
+      <span className="label-caps font-mono text-foreground/90 transition-colors group-focus-within:text-accent">{label}</span>
       <div className="relative mt-2 flex items-center">
         <input
           id={name}
