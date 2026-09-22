@@ -166,7 +166,7 @@ function RegistrationsDashboard() {
     const timeline = Object.entries(dateCounts)
       .map(([date, count]) => {
          const parts = date.split('/');
-         return { date, count, sortVal: parseInt(parts[1]) * 100 + parseInt(parts[0]) };
+         return { date, count, sortVal: parseInt(parts[1] || "0") * 100 + parseInt(parts[0] || "0") };
       })
       .sort((a, b) => a.sortVal - b.sortVal)
       .map(({ date, count }) => ({ date, count }));
