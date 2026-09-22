@@ -91,7 +91,7 @@ function DashboardAuthGuard() {
   return <RegistrationsDashboard />;
 }
 
-function normalizeCollegeName(rawName: string): string {
+function normalizeCollegeName(rawName?: string | null): string {
   if (!rawName) return "Unspecified";
   const name = rawName.toLowerCase().trim().replace(/[.,]/g, "");
 
