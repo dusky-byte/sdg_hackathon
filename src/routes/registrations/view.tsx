@@ -183,8 +183,15 @@ function RegistrationsDashboard() {
   const exportToExcel = async () => {
     if (!registrations || registrations.length === 0) return;
     try {
-      // Import xlsx natively from CDN (no npm install required)
-      const xlsx = await import("https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs");
+      // Load xlsx-js-style dynamically to support cell formatting
+      const xlsx = await new Promise<any>((resolve, reject) => {
+        if ((window as any).XLSX) return resolve((window as any).XLSX);
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js";
+        script.onload = () => resolve((window as any).XLSX);
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
       
       const exportData = registrations.map(reg => ({
         "Team Name": reg.team_name,
@@ -206,14 +213,31 @@ function RegistrationsDashboard() {
       const worksheet = xlsx.utils.json_to_sheet(exportData);
       
       // Auto-size columns to fit content
+      const numCols = Object.keys(exportData[0]).length;
       const colWidths = Object.keys(exportData[0]).map(key => {
         const maxLen = Math.max(
-          key.length,
+          key.length + 4, // Add padding for bold header
           ...exportData.map(d => String(d[key as keyof typeof exportData[0]]).length)
         );
         return { wch: maxLen + 2 };
       });
       worksheet["!cols"] = colWidths;
+
+      // Apply bold font, size 12, and borders to the header row
+      for (let i = 0; i < numCols; i++) {
+        const cellAddress = xlsx.utils.encode_cell({ c: i, r: 0 }); // A1, B1, etc.
+        if (worksheet[cellAddress]) {
+          worksheet[cellAddress].s = {
+            font: { bold: true, sz: 12 },
+            border: {
+              top: { style: "thin" },
+              bottom: { style: "thin" },
+              left: { style: "thin" },
+              right: { style: "thin" }
+            }
+          };
+        }
+      }
 
       const workbook = xlsx.utils.book_new();
       xlsx.utils.book_append_sheet(workbook, worksheet, "Registrations");
