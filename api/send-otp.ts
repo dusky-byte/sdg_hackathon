@@ -2,8 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env['VITE_SUPABASE_URL'] || process.env['SUPABASE_URL'];
+const supabaseServiceKey = process.env['SUPABASE_SERVICE_ROLE_KEY'];
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error("Missing Supabase credentials");
@@ -16,8 +16,8 @@ const transporter = nodemailer.createTransport({
   port: 465,
   secure: true,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: process.env['SMTP_USER'],
+    pass: process.env['SMTP_PASS'],
   },
 });
 
@@ -63,7 +63,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Send email
   try {
     await transporter.sendMail({
-      from: `"Hack to Hustle" <${process.env.SMTP_USER}>`,
+      from: `"Hack to Hustle" <${process.env['SMTP_USER']}>`,
       to: email,
       subject: 'Your Verification Code',
       html: `
