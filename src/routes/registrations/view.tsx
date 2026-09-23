@@ -292,7 +292,7 @@ function RegistrationsDashboard() {
         </header>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          <Card className="bg-background/80 backdrop-blur-md border-border/50">
+          <Card className="bg-background/80 backdrop-blur-md border-border/50 min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <CalendarDays className="w-4 h-4 text-primary" />
@@ -312,7 +312,7 @@ function RegistrationsDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-background/80 backdrop-blur-md border-border/50">
+          <Card className="bg-background/80 backdrop-blur-md border-border/50 min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Hash className="w-4 h-4 text-primary" />
@@ -332,7 +332,7 @@ function RegistrationsDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-background/80 backdrop-blur-md border-border/50">
+          <Card className="bg-background/80 backdrop-blur-md border-border/50 min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Activity className="w-4 h-4 text-primary" />
@@ -364,7 +364,7 @@ function RegistrationsDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-background/80 backdrop-blur-md border-border/50">
+          <Card className="bg-background/80 backdrop-blur-md border-border/50 min-w-0 overflow-hidden">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-primary" />
