@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Lock, Users, Activity, ExternalLink, Hash, Edit2, Trash2, Check, X, CalendarDays, DollarSign } from "lucide-react";
+import { Lock, Users, Activity, ExternalLink, Hash, Edit2, Trash2, Check, X, CalendarDays, DollarSign, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,6 +179,52 @@ function RegistrationsDashboard() {
     return { byCollege, bySize, timeline, paymentStatus };
   }, [registrations]);
 
+
+  const exportToExcel = async () => {
+    if (!registrations || registrations.length === 0) return;
+    try {
+      // Import xlsx natively from CDN (no npm install required)
+      const xlsx = await import("https://cdn.sheetjs.com/xlsx-latest/package/xlsx.mjs");
+      
+      const exportData = registrations.map(reg => ({
+        "Team Name": reg.team_name,
+        "College": reg.college,
+        "Size": reg.team_size,
+        "M1 Name": reg.member1_name,
+        "M1 Email": reg.member1_email,
+        "M1 Phone": reg.member1_phone,
+        "M2 Name": reg.member2_name,
+        "M2 Email": reg.member2_email || "-",
+        "M2 Phone": reg.member2_phone,
+        "M3 Name": reg.member3_name || "-",
+        "M3 Email": reg.member3_email || "-",
+        "M3 Phone": reg.member3_phone || "-",
+        "Txn ID": reg.transaction_id || "-",
+        "Date": new Date(reg.created_at).toLocaleString()
+      }));
+
+      const worksheet = xlsx.utils.json_to_sheet(exportData);
+      
+      // Auto-size columns to fit content
+      const colWidths = Object.keys(exportData[0]).map(key => {
+        const maxLen = Math.max(
+          key.length,
+          ...exportData.map(d => String(d[key as keyof typeof exportData[0]]).length)
+        );
+        return { wch: maxLen + 2 };
+      });
+      worksheet["!cols"] = colWidths;
+
+      const workbook = xlsx.utils.book_new();
+      xlsx.utils.book_append_sheet(workbook, worksheet, "Registrations");
+      
+      xlsx.writeFile(workbook, "HackToHustle_Registrations.xlsx");
+    } catch (error) {
+      console.error("Failed to export Excel", error);
+      alert("Failed to export. Please try again.");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="film-grain min-h-screen flex items-center justify-center">
@@ -281,7 +327,7 @@ function RegistrationsDashboard() {
                     paddingAngle={5}
                     dataKey="value"
                     nameKey="name"
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    labelLine={false}
                   >
                     {chartsData.byCollege.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -313,7 +359,7 @@ function RegistrationsDashboard() {
                     paddingAngle={5}
                     dataKey="value"
                     nameKey="name"
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    labelLine={false}
                   >
                     {chartsData.paymentStatus.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={PAY_COLORS[index % PAY_COLORS.length]} />
@@ -329,8 +375,16 @@ function RegistrationsDashboard() {
 
         <Card className="bg-background/90 backdrop-blur-md border-border/50 overflow-hidden">
           <CardHeader>
-            <CardTitle>Recent Registrations</CardTitle>
-            <CardDescription>Click a row to view complete team details.</CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <CardTitle>Recent Registrations</CardTitle>
+                <CardDescription>Click a row to view complete team details.</CardDescription>
+              </div>
+              <Button onClick={exportToExcel} variant="outline" className="shrink-0 flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Export to Excel
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
