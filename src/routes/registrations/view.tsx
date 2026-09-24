@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Lock, Users, Activity, ExternalLink, Hash, Edit2, Trash2, Check, X, CalendarDays, DollarSign, Download } from "lucide-react";
@@ -120,6 +120,52 @@ function RegistrationsDashboard() {
   });
 
   const [expanded, setExpanded] = useState(false);
+  const [registrationLimit, setRegistrationLimit] = useState<number | "">("");
+  const [isUpdatingLimit, setIsUpdatingLimit] = useState(false);
+
+  useEffect(() => {
+    async function fetchLimit() {
+      try {
+        const { data, error } = await supabase
+          .from("settings" as any)
+          .select("value")
+          .eq("key", "registration_limit")
+          .maybeSingle();
+        
+        if (!error && data && data.value) {
+          setRegistrationLimit(parseInt(data.value, 10));
+        }
+      } catch (e) {
+        console.error("Failed to load limit from DB", e);
+      }
+    }
+    fetchLimit();
+  }, []);
+
+  const handleLimitChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const num = val === "" ? "" : parseInt(val, 10);
+    setRegistrationLimit(num);
+  };
+
+  const saveLimit = async () => {
+    setIsUpdatingLimit(true);
+    try {
+      if (registrationLimit === "") {
+        await supabase.from("settings" as any).delete().eq("key", "registration_limit");
+      } else {
+        const { error } = await supabase
+          .from("settings" as any)
+          .upsert({ key: "registration_limit", value: registrationLimit.toString() });
+        
+        if (error) throw error;
+      }
+    } catch (e) {
+      console.error("Failed to update limit in DB", e);
+      alert("Failed to update limit. Ensure the settings table exists.");
+    }
+    setIsUpdatingLimit(false);
+  };
 
   // Compute charts data
   const chartsData = useMemo(() => {
@@ -278,7 +324,33 @@ function RegistrationsDashboard() {
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
             <p className="text-muted-foreground">Hack to Hustle Registration Overview</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <Card className="px-4 py-2 flex items-center gap-3 bg-background/50 backdrop-blur-sm border-primary/20">
+              <div className="bg-primary/20 p-2 rounded-md">
+                <Users className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-semibold">Limit</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input 
+                    type="number" 
+                    className="h-7 w-20 px-2 py-0 text-sm bg-transparent border-primary/30" 
+                    placeholder="∞" 
+                    value={registrationLimit} 
+                    onChange={handleLimitChange} 
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-7 text-xs px-2" 
+                    onClick={saveLimit}
+                    disabled={isUpdatingLimit}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </Card>
             <Card className="px-4 py-2 flex items-center gap-3 bg-background/50 backdrop-blur-sm border-primary/20">
               <div className="bg-primary/20 p-2 rounded-md">
                 <Users className="w-4 h-4 text-primary" />
