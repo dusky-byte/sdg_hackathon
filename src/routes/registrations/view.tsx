@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Lock, Users, Activity, ExternalLink, Hash, Edit2, Trash2, Check, X, CalendarDays, DollarSign, Download } from "lucide-react";
+import { Lock, Users, Activity, ExternalLink, Hash, Edit2, Trash2, Check, X, CalendarDays, DollarSign, Download, PlusCircle, UserPlus, UserMinus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,6 +106,7 @@ function normalizeCollegeName(rawName?: string | null): string {
 }
 
 function RegistrationsDashboard() {
+  const queryClient = useQueryClient();
   const { data: registrations, isLoading } = useQuery({
     queryKey: ["registrations"],
     queryFn: async () => {
@@ -373,6 +374,7 @@ function RegistrationsDashboard() {
                 <p className="text-xl font-bold leading-none">{totalStudents}</p>
               </div>
             </Card>
+            <AddTeamButton onAdded={() => queryClient.invalidateQueries({ queryKey: ["registrations"] })} />
           </div>
         </header>
 
@@ -537,25 +539,106 @@ function RegistrationsDashboard() {
   );
 }
 
+function AddTeamButton({ onAdded }: { onAdded: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    team_name: "", college: "", team_size: "2",
+    member1_name: "", member1_email: "", member1_phone: "",
+    member2_name: "", member2_email: "", member2_phone: "",
+    member3_name: "", member3_email: "", member3_phone: "",
+    transaction_id: "",
+  });
+  const hasM3 = parseInt(form.team_size) >= 3;
+
+  const handleSave = async () => {
+    if (!form.team_name || !form.college || !form.member1_name || !form.member1_email) {
+      alert("Please fill in at least Team Name, College, and Member 1 details.");
+      return;
+    }
+    setSaving(true);
+    const payload: any = {
+      team_name: form.team_name, college: form.college,
+      track: "SDG 04", team_size: parseInt(form.team_size),
+      member1_name: form.member1_name, member1_email: form.member1_email, member1_phone: form.member1_phone,
+      member2_name: form.member2_name, member2_email: form.member2_email, member2_phone: form.member2_phone,
+      member3_name: hasM3 ? form.member3_name || null : null,
+      member3_email: hasM3 ? form.member3_email || null : null,
+      member3_phone: hasM3 ? form.member3_phone || null : null,
+      transaction_id: form.transaction_id || null,
+    };
+    const { error } = await supabase.from("registrations").insert(payload);
+    setSaving(false);
+    if (error) { alert("Failed to add: " + error.message); return; }
+    setOpen(false);
+    setForm({ team_name: "", college: "", team_size: "2", member1_name: "", member1_email: "", member1_phone: "", member2_name: "", member2_email: "", member2_phone: "", member3_name: "", member3_email: "", member3_phone: "", transaction_id: "" });
+    onAdded();
+  };
+
+  const f = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="flex items-center gap-2"><PlusCircle className="w-4 h-4" /> Add Team</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-primary/20">
+        <DialogHeader><DialogTitle>Add New Team</DialogTitle></DialogHeader>
+        <div className="grid gap-4 py-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div><p className="text-xs text-muted-foreground mb-1">Team Name *</p><Input value={form.team_name} onChange={f("team_name")} /></div>
+            <div><p className="text-xs text-muted-foreground mb-1">College *</p><Input value={form.college} onChange={f("college")} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><p className="text-xs text-muted-foreground mb-1">Team Size</p>
+              <select value={form.team_size} onChange={e => setForm(p => ({ ...p, team_size: e.target.value }))} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="2">2</option><option value="3">3</option>
+              </select>
+            </div>
+            <div><p className="text-xs text-muted-foreground mb-1">Transaction ID</p><Input value={form.transaction_id} onChange={f("transaction_id")} /></div>
+          </div>
+          {[{n:"member1",label:"Member 1 (Leader)",req:true},{n:"member2",label:"Member 2",req:true},{n:"member3",label:"Member 3",req:false}].filter(m => m.n !== "member3" || hasM3).map(({ n, label }) => (
+            <div key={n} className="border rounded-lg p-3 space-y-2">
+              <p className="text-xs font-semibold text-primary uppercase">{label}</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div><p className="text-xs text-muted-foreground mb-1">Name</p><Input value={(form as any)[`${n}_name`]} onChange={f(`${n}_name`)} /></div>
+                <div><p className="text-xs text-muted-foreground mb-1">Email</p><Input type="email" value={(form as any)[`${n}_email`]} onChange={f(`${n}_email`)} /></div>
+                <div><p className="text-xs text-muted-foreground mb-1">Phone</p><Input value={(form as any)[`${n}_phone`]} onChange={f(`${n}_phone`)} maxLength={10} /></div>
+              </div>
+            </div>
+          ))}
+          <Button onClick={handleSave} disabled={saving} className="w-full">{saving ? "Saving..." : "Add Team"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function RegistrationRow({ reg }: { reg: any }) {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(reg.team_name);
+  const [saving, setSaving] = useState(false);
 
-  const updateMutation = useMutation({
-    mutationFn: async (newName: string) => {
-      const { error } = await supabase.from("registrations").update({ team_name: newName }).eq("id", reg.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["registrations"] });
-      setIsEditing(false);
-    },
-    onError: (error) => {
-      alert("Failed to update: " + error.message);
-    }
+  const [edit, setEdit] = useState({
+    team_name: reg.team_name || "",
+    college: reg.college || "",
+    team_size: String(reg.team_size || 2),
+    transaction_id: reg.transaction_id || "",
+    member1_name: reg.member1_name || "",
+    member1_email: reg.member1_email || "",
+    member1_phone: reg.member1_phone || "",
+    member2_name: reg.member2_name || "",
+    member2_email: reg.member2_email || "",
+    member2_phone: reg.member2_phone || "",
+    member3_name: reg.member3_name || "",
+    member3_email: reg.member3_email || "",
+    member3_phone: reg.member3_phone || "",
   });
+
+  const hasM3 = parseInt(edit.team_size) >= 3;
+
+  const f = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setEdit(p => ({ ...p, [k]: e.target.value }));
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -566,131 +649,180 @@ function RegistrationRow({ reg }: { reg: any }) {
       queryClient.invalidateQueries({ queryKey: ["registrations"] });
       setIsOpen(false);
     },
-    onError: (error) => {
-      alert("Failed to delete: " + error.message);
-    }
+    onError: (error) => alert("Failed to delete: " + error.message)
   });
 
+  const handleSave = async () => {
+    setSaving(true);
+    const payload: any = {
+      team_name: edit.team_name,
+      college: edit.college,
+      team_size: parseInt(edit.team_size),
+      transaction_id: edit.transaction_id || null,
+      member1_name: edit.member1_name,
+      member1_email: edit.member1_email,
+      member1_phone: edit.member1_phone,
+      member2_name: edit.member2_name,
+      member2_email: edit.member2_email,
+      member2_phone: edit.member2_phone,
+      member3_name: hasM3 ? edit.member3_name || null : null,
+      member3_email: hasM3 ? edit.member3_email || null : null,
+      member3_phone: hasM3 ? edit.member3_phone || null : null,
+    };
+    const { error } = await supabase.from("registrations").update(payload).eq("id", reg.id);
+    setSaving(false);
+    if (error) { alert("Failed to save: " + error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["registrations"] });
+    setIsEditing(false);
+  };
+
+  const addMember3 = () => setEdit(p => ({ ...p, team_size: "3" }));
+  const removeMember3 = () => setEdit(p => ({ ...p, team_size: "2", member3_name: "", member3_email: "", member3_phone: "" }));
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(v) => { setIsOpen(v); if (!v) setIsEditing(false); }}>
       <DialogTrigger asChild>
         <TableRow className="cursor-pointer hover:bg-muted/50 transition-colors">
           <TableCell className="font-medium">{reg.team_name}</TableCell>
-          <TableCell className="max-w-[200px] truncate" title={reg.college}>
-            {reg.college}
-          </TableCell>
-          <TableCell className="font-mono text-xs text-muted-foreground">
-            {reg.transaction_id || "N/A"}
-          </TableCell>
+          <TableCell className="max-w-[200px] truncate" title={reg.college}>{reg.college}</TableCell>
+          <TableCell className="font-mono text-xs text-muted-foreground">{reg.transaction_id || "N/A"}</TableCell>
           <TableCell className="text-right">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
-              {reg.team_size}
-            </span>
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">{reg.team_size}</span>
           </TableCell>
         </TableRow>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-primary/20">
+      <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-primary/20">
         <DialogHeader>
-          <DialogTitle className="text-2xl flex items-start justify-between gap-2 pr-6">
-            <div className="flex-1 flex flex-wrap items-center gap-2">
-              {isEditing ? (
-                <div className="flex items-center gap-2 w-full max-w-sm">
-                  <Input 
-                    value={editName} 
-                    onChange={(e) => setEditName(e.target.value)} 
-                    className="h-8"
-                  />
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500" onClick={() => updateMutation.mutate(editName)} disabled={updateMutation.isPending}>
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => { setIsEditing(false); setEditName(reg.team_name); }}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+          <DialogTitle className="flex items-center justify-between pr-6">
+            <span className="text-xl">{reg.team_name}</span>
+            <div className="flex items-center gap-2">
+              {!isEditing ? (
+                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)} className="flex items-center gap-1.5 h-8">
+                  <Edit2 className="w-3.5 h-3.5" /> Edit
+                </Button>
               ) : (
                 <>
-                  <span>{reg.team_name}</span>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 ml-1" onClick={() => setIsEditing(true)}>
-                    <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Button size="sm" onClick={handleSave} disabled={saving} className="h-8 bg-green-600 hover:bg-green-700 text-white">
+                    <Check className="w-3.5 h-3.5 mr-1" />{saving ? "Saving..." : "Save"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setIsEditing(false)} className="h-8">
+                    <X className="w-3.5 h-3.5" />
                   </Button>
                 </>
               )}
+              <Button
+                variant="destructive" size="sm" className="h-8"
+                onClick={() => { if (confirm(`Delete ${reg.team_name}?`)) deleteMutation.mutate(); }}
+                disabled={deleteMutation.isPending}
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
+              </Button>
             </div>
-            
-            <Button 
-              variant="destructive" 
-              size="icon" 
-              className="h-8 w-8 shrink-0" 
-              onClick={() => {
-                if(confirm(`Are you sure you want to delete ${reg.team_name}?`)) {
-                  deleteMutation.mutate();
-                }
-              }}
-              disabled={deleteMutation.isPending}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
-        <div className="grid gap-6 py-4">
-          <div className="grid grid-cols-2 gap-4">
+
+        <div className="grid gap-5 py-4">
+          {/* Team Info */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-sm text-muted-foreground font-medium mb-1">College / Institution</p>
-              <p className="text-sm">{reg.college}</p>
+              <p className="text-xs text-muted-foreground font-medium mb-1">Team Name</p>
+              {isEditing ? <Input value={edit.team_name} onChange={f("team_name")} /> : <p className="text-sm font-semibold">{reg.team_name}</p>}
             </div>
             <div>
-              <p className="text-sm text-muted-foreground font-medium mb-1">Registration Date</p>
-              <p className="text-sm">
-                {new Date(reg.created_at).toLocaleString(undefined, {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })}
-              </p>
+              <p className="text-xs text-muted-foreground font-medium mb-1">College / Institution</p>
+              {isEditing ? <Input value={edit.college} onChange={f("college")} /> : <p className="text-sm">{reg.college}</p>}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-1">Transaction ID</p>
+              {isEditing ? <Input value={edit.transaction_id} onChange={f("transaction_id")} /> : <p className="text-sm font-mono">{reg.transaction_id || "N/A"}</p>}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium mb-1">Registration Date</p>
+              <p className="text-sm">{new Date(reg.created_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Team Members</h3>
-            
+          {/* Members */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-base border-b pb-2 flex items-center gap-2">Team Members</h3>
+
             {/* Member 1 */}
             <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
               <div className="flex items-center gap-2 mb-2">
                 <span className="bg-primary text-primary-foreground text-xs font-bold px-1.5 py-0.5 rounded">Leader</span>
-                <p className="font-semibold">{reg.member1_name}</p>
+                {!isEditing && <p className="font-semibold text-sm">{reg.member1_name}</p>}
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                <p>📧 {reg.member1_email}</p>
-                <p>📱 {reg.member1_phone}</p>
-              </div>
+              {isEditing ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <div><p className="text-xs text-muted-foreground mb-1">Name</p><Input value={edit.member1_name} onChange={f("member1_name")} /></div>
+                  <div><p className="text-xs text-muted-foreground mb-1">Email</p><Input type="email" value={edit.member1_email} onChange={f("member1_email")} /></div>
+                  <div><p className="text-xs text-muted-foreground mb-1">Phone</p><Input value={edit.member1_phone} onChange={f("member1_phone")} maxLength={10} /></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                  <p>📧 {reg.member1_email}</p>
+                  <p>📱 {reg.member1_phone}</p>
+                </div>
+              )}
             </div>
 
             {/* Member 2 */}
             <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
-              <p className="font-semibold mb-2">{reg.member2_name}</p>
-              <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                <p>📧 {reg.member2_email}</p>
-                <p>📱 {reg.member2_phone}</p>
-              </div>
+              {!isEditing && <p className="font-semibold text-sm mb-2">{reg.member2_name}</p>}
+              {isEditing ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <div><p className="text-xs text-muted-foreground mb-1">Name</p><Input value={edit.member2_name} onChange={f("member2_name")} /></div>
+                  <div><p className="text-xs text-muted-foreground mb-1">Email</p><Input type="email" value={edit.member2_email} onChange={f("member2_email")} /></div>
+                  <div><p className="text-xs text-muted-foreground mb-1">Phone</p><Input value={edit.member2_phone} onChange={f("member2_phone")} maxLength={10} /></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                  <p>📧 {reg.member2_email}</p>
+                  <p>📱 {reg.member2_phone}</p>
+                </div>
+              )}
             </div>
 
             {/* Member 3 */}
-            {reg.member3_name && (
+            {hasM3 ? (
               <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
-                <p className="font-semibold mb-2">{reg.member3_name}</p>
-                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                  <p>📧 {reg.member3_email}</p>
-                  <p>📱 {reg.member3_phone}</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-primary uppercase">Member 3</p>
+                  {isEditing && (
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive" onClick={removeMember3}>
+                      <UserMinus className="w-3.5 h-3.5 mr-1" /> Remove Member 3
+                    </Button>
+                  )}
                 </div>
+                {isEditing ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><p className="text-xs text-muted-foreground mb-1">Name</p><Input value={edit.member3_name} onChange={f("member3_name")} /></div>
+                    <div><p className="text-xs text-muted-foreground mb-1">Email</p><Input type="email" value={edit.member3_email} onChange={f("member3_email")} /></div>
+                    <div><p className="text-xs text-muted-foreground mb-1">Phone</p><Input value={edit.member3_phone} onChange={f("member3_phone")} maxLength={10} /></div>
+                  </div>
+                ) : (
+                  <>
+                    {!isEditing && <p className="font-semibold text-sm mb-2">{edit.member3_name}</p>}
+                    <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                      <p>📧 {reg.member3_email}</p>
+                      <p>📱 {reg.member3_phone}</p>
+                    </div>
+                  </>
+                )}
               </div>
-            )}
+            ) : isEditing ? (
+              <Button variant="outline" size="sm" onClick={addMember3} className="flex items-center gap-2 text-xs h-8">
+                <UserPlus className="w-3.5 h-3.5" /> Add Member 3
+              </Button>
+            ) : null}
           </div>
 
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Payment Details</h3>
+          {/* Payment */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-base border-b pb-2">Payment Details</h3>
             <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
               <p className="text-sm text-muted-foreground font-medium mb-1">Transaction ID</p>
               <p className="font-mono text-sm mb-4">{reg.transaction_id || "N/A"}</p>
-              
               <p className="text-sm text-muted-foreground font-medium mb-2">Screenshot</p>
               {reg.payment_screenshot_url ? (
                 <a href={reg.payment_screenshot_url} target="_blank" rel="noopener noreferrer" className="block max-w-sm rounded-md overflow-hidden border border-border/50 hover:opacity-90 transition-opacity">
@@ -706,4 +838,3 @@ function RegistrationRow({ reg }: { reg: any }) {
     </Dialog>
   );
 }
-
