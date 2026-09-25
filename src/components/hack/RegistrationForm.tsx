@@ -376,6 +376,20 @@ export function RegistrationForm() {
     e.preventDefault();
     setFormError("");
 
+    // Re-check limit on every submit — catches users who had form open before limit was hit
+    try {
+      const statusRes = await fetch('/api/registration-status');
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        if (statusData && statusData.isOpen === false) {
+          setLimitReached(true);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error("Could not verify registration status on submit", e);
+    }
+
     if (!emailVerified) {
       setFormError("Please verify the Team Leader's email (Member 1) before submitting.");
       return;
