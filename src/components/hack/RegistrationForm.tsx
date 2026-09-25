@@ -229,9 +229,6 @@ export function RegistrationForm() {
   const [teamSize, setTeamSize] = useState<number | "">(2);
   const [mounted, setMounted] = useState(false);
 
-  const [limitReached, setLimitReached] = useState(false);
-  const [checkingLimit, setCheckingLimit] = useState(true);
-
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -243,9 +240,9 @@ export function RegistrationForm() {
   const [emailVerified, setEmailVerified] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  
+
   const [otpInput, setOtpInput] = useState("");
-  
+
   const [cooldown, setCooldown] = useState(0);
   const [requestCount, setRequestCount] = useState(0);
 
@@ -257,53 +254,18 @@ export function RegistrationForm() {
   }, [cooldown]);
 
   useEffect(() => {
-    async function init() {
-      try {
-        const saved = localStorage.getItem("registration_draft");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setDraft(parsed);
-          if (parsed["team_size"]) {
-            setTeamSize(parseInt(parsed["team_size"]));
-          }
+    try {
+      const saved = localStorage.getItem("registration_draft");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setDraft(parsed);
+        if (parsed["team_size"]) {
+          setTeamSize(parseInt(parsed["team_size"]));
         }
-      } catch {}
-
-      try {
-        // Fetch limit from global settings table
-        const { data: settingData, error: settingError } = await externalSupabase
-          .from("settings" as any)
-          .select("value")
-          .eq("key", "registration_limit")
-          .maybeSingle();
-
-        if (settingError) {
-          console.error("Failed to fetch limit:", settingError);
-          setCheckingLimit(false);
-          setMounted(true);
-          return;
-        }
-
-        if (settingData && settingData.value) {
-          const limit = parseInt(settingData.value, 10);
-          
-          const { count, error: countError } = await externalSupabase
-            .from("registrations")
-            .select('*', { count: 'exact', head: true });
-          
-          if (!countError && count !== null && count >= limit) {
-            setLimitReached(true);
-          }
-        }
-      } catch (e) {
-        console.error("Limit check error", e);
       }
-      
-      setCheckingLimit(false);
-      setMounted(true);
-    }
-    
-    init();
+    } catch { }
+    setMounted(true);
+    setMounted(true);
   }, []);
 
   const handleFormChange = (e: React.FormEvent<HTMLFormElement>) => {
@@ -328,23 +290,23 @@ export function RegistrationForm() {
 
     setVerifying(true);
     setFormError("");
-    
+
     try {
       const response = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: member1Email }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to send OTP');
       }
 
       setOtpSent(true);
       setOtpInput("");
-      
+
       const newCount = requestCount + 1;
       setRequestCount(newCount);
       // Exponential backoff: 30s, 60s, 120s, max 5 minutes
@@ -371,9 +333,9 @@ export function RegistrationForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: member1Email, otp: otpInput }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Invalid verification code');
       }
@@ -463,8 +425,8 @@ export function RegistrationForm() {
     setDone(true);
   }
 
-  if (!mounted || checkingLimit) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" /></div>; // Wait for client hydration to prevent Error #418
+  if (!mounted) {
+    return <div className="min-h-screen" />; // Wait for client hydration to prevent Error #418
   }
 
   return (
@@ -473,15 +435,7 @@ export function RegistrationForm() {
 
       <div className="panel mt-6 flex flex-col gap-12 p-8 sm:p-10 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
-          {limitReached ? (
-            <div className="py-16 text-center border border-border bg-foreground/5 p-8 rounded-lg">
-              <h3 className="font-display text-2xl text-accent mb-2">Registrations Closed</h3>
-              <p className="text-foreground/70">
-                We have reached the maximum number of allowed teams for this hackathon.
-                Thank you for your interest!
-              </p>
-            </div>
-          ) : done ? (
+          {done ? (
             <SuccessCheck />
           ) : (
             <form onSubmit={handleSubmit} onChange={handleFormChange} className="space-y-8" noValidate>
@@ -553,7 +507,7 @@ export function RegistrationForm() {
                                 </div>
                                 <p className="mb-3 text-muted-foreground">We sent a verification code to your email.</p>
                                 <div className="flex gap-2">
-                                  <input 
+                                  <input
                                     type="text"
                                     maxLength={6}
                                     value={otpInput}

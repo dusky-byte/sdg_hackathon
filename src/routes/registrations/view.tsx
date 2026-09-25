@@ -142,6 +142,10 @@ function RegistrationsDashboard() {
     fetchLimit();
   }, []);
 
+  const totalStudents = useMemo(() => {
+    return registrations?.reduce((sum, reg) => sum + (reg.team_size || 2), 0) || 0;
+  }, [registrations]);
+
   const handleLimitChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     const num = val === "" ? "" : parseInt(val, 10);
@@ -358,6 +362,15 @@ function RegistrationsDashboard() {
               <div>
                 <p className="text-xs text-muted-foreground uppercase font-semibold">Total Teams</p>
                 <p className="text-xl font-bold leading-none">{registrations?.length || 0}</p>
+              </div>
+            </Card>
+            <Card className="px-4 py-2 flex items-center gap-3 bg-background/50 backdrop-blur-sm border-primary/20">
+              <div className="bg-primary/20 p-2 rounded-md">
+                <Users className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground uppercase font-semibold">Total Students</p>
+                <p className="text-xl font-bold leading-none">{totalStudents}</p>
               </div>
             </Card>
           </div>
