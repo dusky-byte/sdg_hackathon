@@ -228,6 +228,8 @@ export function RegistrationForm() {
   const [draft, setDraft] = useState<Record<string, any>>({});
   const [teamSize, setTeamSize] = useState<number | "">(2);
   const [mounted, setMounted] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
+  const [checkingLimit, setCheckingLimit] = useState(true);
 
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -254,18 +256,34 @@ export function RegistrationForm() {
   }, [cooldown]);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("registration_draft");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setDraft(parsed);
-        if (parsed["team_size"]) {
-          setTeamSize(parseInt(parsed["team_size"]));
+    async function init() {
+      try {
+        const saved = localStorage.getItem("registration_draft");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setDraft(parsed);
+          if (parsed["team_size"]) {
+            setTeamSize(parseInt(parsed["team_size"]));
+          }
         }
+      } catch { }
+      
+      try {
+        const response = await fetch('/api/registration-status');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.isOpen === false) {
+            setLimitReached(true);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to check registration status", e);
       }
-    } catch { }
-    setMounted(true);
-    setMounted(true);
+      
+      setCheckingLimit(false);
+      setMounted(true);
+    }
+    init();
   }, []);
 
   const handleFormChange = (e: React.FormEvent<HTMLFormElement>) => {
@@ -425,8 +443,8 @@ export function RegistrationForm() {
     setDone(true);
   }
 
-  if (!mounted) {
-    return <div className="min-h-screen" />; // Wait for client hydration to prevent Error #418
+  if (!mounted || checkingLimit) {
+    return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" /></div>; // Wait for client hydration to prevent Error #418
   }
 
   return (
@@ -435,7 +453,15 @@ export function RegistrationForm() {
 
       <div className="panel mt-6 flex flex-col gap-12 p-8 sm:p-10 lg:flex-row lg:items-start">
         <div className="min-w-0 flex-1">
-          {done ? (
+          {limitReached ? (
+            <div className="py-16 text-center border border-border bg-foreground/5 p-8 rounded-lg">
+              <h3 className="font-display text-2xl text-accent mb-2">Registrations Closed</h3>
+              <p className="text-foreground/70">
+                We have reached the maximum number of allowed teams for this hackathon.
+                Thank you for your interest!
+              </p>
+            </div>
+          ) : done ? (
             <SuccessCheck />
           ) : (
             <form onSubmit={handleSubmit} onChange={handleFormChange} className="space-y-8" noValidate>
